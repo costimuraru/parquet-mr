@@ -22,7 +22,6 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
 import com.google.protobuf.Message;
 import com.twitter.elephantbird.util.Protobufs;
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.parquet.schema.*;
 import org.apache.parquet.schema.Types.Builder;
 import org.apache.parquet.schema.Types.GroupBuilder;
@@ -60,7 +59,7 @@ public class ProtoSchemaConverter {
     for (Descriptors.FieldDescriptor fieldDescriptor : fieldDescriptors) {
       if (fieldDescriptor.isMapField() || fieldDescriptor.isRepeated()) {
         groupBuilder =
-          addField(fieldDescriptor, groupBuilder).named(RandomStringUtils.random(20, "abc"));
+          addField(fieldDescriptor, groupBuilder).named("value");
       } else {
         groupBuilder =
           addField(fieldDescriptor, groupBuilder)
@@ -110,27 +109,28 @@ public class ProtoSchemaConverter {
   }
 
   private GroupType mapAsGroup(Descriptors.FieldDescriptor descriptor, Type.Repetition repetition) {
-    Descriptors.FieldDescriptor.Type mapValueType = descriptor.getMessageType().getFields().get(1).getType();
+    List<Descriptors.FieldDescriptor> fields = descriptor.getMessageType().getFields();
+    if (fields.size() != 2) {
+      throw new RuntimeException("Expected two fields: key/value, but got: " + fields);
+    }
 
-    Types.PrimitiveBuilder<PrimitiveType> primitiveBuilder;
-    switch(mapValueType) {
+    Types.PrimitiveBuilder<PrimitiveType> primitiveBuilder = getPrimitive(fields.get(1), Type.Repetition.REQUIRED);
+    return ConversionPatterns.stringKeyMapType(repetition, descriptor.getName(), primitiveBuilder.named("value"));
+  }
+
+  private Types.PrimitiveBuilder<PrimitiveType> getPrimitive(Descriptors.FieldDescriptor fieldDescriptor, Type.Repetition repetition) {
+    switch(fieldDescriptor.getType()) {
       case INT32:
-        primitiveBuilder = Types.primitive(INT32, repetition);
-        break;
+        return Types.primitive(INT32, repetition);
       case INT64:
-        primitiveBuilder = Types.primitive(INT64, repetition);
-        break;
+        return Types.primitive(INT64, repetition);
       case STRING:
-        primitiveBuilder = Types.primitive(BINARY, repetition).as(UTF8);
-        break;
+        return Types.primitive(BINARY, repetition).as(UTF8);
       case DOUBLE:
-        primitiveBuilder = Types.primitive(DOUBLE, repetition);
-        break;
+        return Types.primitive(DOUBLE, repetition);
       default:
         throw new RuntimeException("Need to finish the implementation here.");
     }
-
-    return ConversionPatterns.stringKeyMapType(repetition, descriptor.getName(), primitiveBuilder.named("value"));
   }
 
   private GroupType listAsGroup(Descriptors.FieldDescriptor descriptor, Type.Repetition repetition) {
