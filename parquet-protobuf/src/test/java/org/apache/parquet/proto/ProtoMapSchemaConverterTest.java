@@ -47,14 +47,16 @@ public class ProtoMapSchemaConverterTest {
   public void testConvertMap() throws Exception {
     String expectedSchema =
       "message TestProtobuf.MyMessage {\n" +
-        "  required int64 my_id = 1;\n" +
-        "  repeated group my_map = 2 {\n" +
-        "    optional binary key (UTF8) = 1;\n" +
-        "    optional binary value (UTF8) = 2;\n" +
+        "  required int32 my_id = 1;\n" +
+        "  required group my_map (MAP) = 2 {\n" +
+        "    repeated group map (MAP_KEY_VALUE) {\n" +
+        "      required binary key (UTF8);\n" +
+        "      required double value;\n" +
+        "    }\n" +
         "  }\n" +
-        "}\n";
+        "}";
 
-    testConversion(MapProtobuf.MyMessage.class, expectedSchema);
+    testConversion(MapProtobuf.Log.class, expectedSchema);
   }
 
 }

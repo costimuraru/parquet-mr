@@ -23,6 +23,7 @@ import com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
 import com.google.protobuf.Message;
 import com.twitter.elephantbird.util.Protobufs;
 import org.apache.parquet.schema.*;
+import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Types.Builder;
 import org.apache.parquet.schema.Types.GroupBuilder;
 import org.slf4j.Logger;
@@ -57,15 +58,10 @@ public class ProtoSchemaConverter {
   /* Iterates over list of fields. **/
   private <T> GroupBuilder<T> convertFields(GroupBuilder<T> groupBuilder, List<Descriptors.FieldDescriptor> fieldDescriptors) {
     for (Descriptors.FieldDescriptor fieldDescriptor : fieldDescriptors) {
-      if (fieldDescriptor.isMapField() || fieldDescriptor.isRepeated()) {
-        groupBuilder =
-          addField(fieldDescriptor, groupBuilder).named("value");
-      } else {
-        groupBuilder =
-          addField(fieldDescriptor, groupBuilder)
-            .id(fieldDescriptor.getNumber())
-            .named(fieldDescriptor.getName());
-      }
+      groupBuilder =
+        addField(fieldDescriptor, groupBuilder)
+          .id(fieldDescriptor.getNumber())
+          .named(fieldDescriptor.getName());
     }
     return groupBuilder;
   }
@@ -80,9 +76,23 @@ public class ProtoSchemaConverter {
     }
   }
 
-  private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addField(Descriptors.FieldDescriptor descriptor, GroupBuilder<T> builder) {
+  private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addField(Descriptors.FieldDescriptor descriptor, final GroupBuilder<T> builder) {
     Type.Repetition repetition = getRepetition(descriptor);
     JavaType javaType = descriptor.getJavaType();
+
+    if (descriptor.isRepeated() && !descriptor.isMapField() && descriptor.getJavaType() != JavaType.MESSAGE) {
+      GroupBuilder<GroupBuilder<T>> tier1 = builder.group(Type.Repetition.REQUIRED).as(OriginalType.LIST);
+      PrimitiveTypeName primitiveType = getPrimitiveType(descriptor);
+      if (primitiveType == BINARY) {
+        OriginalType originalType = descriptor.getJavaType() == JavaType.ENUM ? ENUM : UTF8;
+        return tier1
+          .primitive(primitiveType, Type.Repetition.REPEATED).as(originalType).named("array");
+      } else {
+        return tier1
+          .primitive(primitiveType, Type.Repetition.REPEATED).named("array");
+      }
+    }
+
     switch (javaType) {
       case BOOLEAN: return builder.primitive(BOOLEAN, repetition);
       case INT: return builder.primitive(INT32, repetition);
@@ -93,9 +103,43 @@ public class ProtoSchemaConverter {
       case STRING: return builder.primitive(BINARY, repetition).as(UTF8);
       case MESSAGE: {
         if (descriptor.isMapField()) {
-          builder.addField(mapAsGroup(descriptor, repetition));
+          List<Descriptors.FieldDescriptor> fields = descriptor.getMessageType().getFields();
+          if (fields.size() != 2) {
+            throw new RuntimeException("Expected two fields: key/value, but got: " + fields);
+          }
+
+          Descriptors.FieldDescriptor mapEntryValueField = fields.get(1);
+          GroupBuilder<GroupBuilder<T>> tier1 = builder.group(Type.Repetition.REQUIRED).as(OriginalType.MAP);
+          GroupBuilder<GroupBuilder<GroupBuilder<T>>> tier2 = tier1.group(Type.Repetition.REPEATED).as(OriginalType.MAP_KEY_VALUE);
+          PrimitiveTypeName primitiveType = getPrimitiveType(mapEntryValueField);
+          GroupBuilder<GroupBuilder<GroupBuilder<T>>> tier3 = tier2
+            .primitive(BINARY, Type.Repetition.REQUIRED).as(UTF8).named("key");
+
+          if (primitiveType == BINARY) {
+            OriginalType originalType = mapEntryValueField.getJavaType() == JavaType.ENUM ? ENUM : UTF8;
+            tier3 = tier3
+              .primitive(primitiveType, Type.Repetition.REQUIRED).as(originalType).named("value");
+          } else {
+            tier3 = tier3
+              .primitive(primitiveType, Type.Repetition.REQUIRED).named("value");
+          }
+
+          return tier3.named("map");
         } else if (descriptor.isRepeated()) {
-          builder.addField(listAsGroup(descriptor, repetition));
+          /// TODO repeated message
+
+          GroupBuilder<GroupBuilder<T>> tier1 = builder.group(Type.Repetition.REQUIRED).as(OriginalType.LIST);
+          GroupBuilder<GroupBuilder<GroupBuilder<T>>> tier2 = tier1.group(Type.Repetition.REPEATED);
+          PrimitiveTypeName primitiveType = getPrimitiveType(descriptor);
+
+          if (primitiveType == BINARY) {
+            OriginalType originalType = descriptor.getJavaType() == JavaType.ENUM ? ENUM : UTF8;
+            return tier2
+              .primitive(primitiveType, Type.Repetition.REQUIRED).as(originalType).named("first_field").named("array");
+          } else {
+            return tier2
+              .primitive(primitiveType, Type.Repetition.REQUIRED).named("first_field").named("array");
+          }
         } else {
           GroupBuilder<GroupBuilder<T>> group = builder.group(repetition);
           convertFields(group, descriptor.getMessageType().getFields());
@@ -108,55 +152,27 @@ public class ProtoSchemaConverter {
     }
   }
 
-  private GroupType mapAsGroup(Descriptors.FieldDescriptor descriptor, Type.Repetition repetition) {
-    List<Descriptors.FieldDescriptor> fields = descriptor.getMessageType().getFields();
-    if (fields.size() != 2) {
-      throw new RuntimeException("Expected two fields: key/value, but got: " + fields);
-    }
-
-    Types.PrimitiveBuilder<PrimitiveType> primitiveBuilder = getPrimitive(fields.get(1), Type.Repetition.REQUIRED);
-    return ConversionPatterns.stringKeyMapType(repetition, descriptor.getName(), primitiveBuilder.named("value"));
-  }
-
-  private Types.PrimitiveBuilder<PrimitiveType> getPrimitive(Descriptors.FieldDescriptor fieldDescriptor, Type.Repetition repetition) {
-    switch(fieldDescriptor.getType()) {
-      case INT32:
-        return Types.primitive(INT32, repetition);
-      case INT64:
-        return Types.primitive(INT64, repetition);
+  private PrimitiveTypeName getPrimitiveType(Descriptors.FieldDescriptor fieldDescriptor) {
+    JavaType javaType = fieldDescriptor.getJavaType();
+    switch(javaType) {
+      case INT:
+        return PrimitiveTypeName.INT32;
+      case LONG:
+        return PrimitiveTypeName.INT64;
       case STRING:
-        return Types.primitive(BINARY, repetition).as(UTF8);
+        return PrimitiveTypeName.BINARY;
       case DOUBLE:
-        return Types.primitive(DOUBLE, repetition);
+        return PrimitiveTypeName.DOUBLE;
+      case BOOLEAN:
+        return PrimitiveTypeName.BOOLEAN;
+      case FLOAT:
+        return PrimitiveTypeName.FLOAT;
+      case ENUM:
+        return PrimitiveTypeName.BINARY;
       default:
-        throw new RuntimeException("Need to finish the implementation here.");
+        throw new RuntimeException("Need to finish the implementation here. No mapping for: " + javaType);
     }
   }
 
-  private GroupType listAsGroup(Descriptors.FieldDescriptor descriptor, Type.Repetition repetition) {
-    Descriptors.FieldDescriptor.Type mapValueType = descriptor.getMessageType().getFields().get(1).getType();
-
-    Types.PrimitiveBuilder<PrimitiveType> primitiveBuilder;
-    switch(mapValueType) {
-      case INT32:
-        primitiveBuilder = Types.primitive(INT32, repetition);
-        break;
-      case INT64:
-        primitiveBuilder = Types.primitive(INT64, repetition);
-        break;
-      case STRING:
-        primitiveBuilder = Types.primitive(BINARY, repetition).as(UTF8);
-        break;
-      case DOUBLE:
-        primitiveBuilder = Types.primitive(DOUBLE, repetition);
-        break;
-      default:
-        throw new RuntimeException("Need to finish the implementation here.");
-    }
-
-//    return ConversionPatterns.stringKeyMapType(repetition, descriptor.getName(), primitiveBuilder.named("value"));
-    return ConversionPatterns.listOfElements(repetition, descriptor.getName(),
-      primitiveBuilder.named("value"));
-  }
 
 }
