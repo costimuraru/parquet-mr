@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,29 +18,22 @@
  */
 package org.apache.parquet.proto;
 
-import static org.apache.parquet.schema.OriginalType.ENUM;
-import static org.apache.parquet.schema.OriginalType.UTF8;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BOOLEAN;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.FLOAT;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64;
-
-import java.util.List;
-
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
-import org.apache.parquet.schema.Types;
-import org.apache.parquet.schema.Types.Builder;
-import org.apache.parquet.schema.Types.GroupBuilder;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
 import com.google.protobuf.Message;
 import com.twitter.elephantbird.util.Protobufs;
+import org.apache.commons.lang.RandomStringUtils;
+import org.apache.parquet.schema.*;
+import org.apache.parquet.schema.Types.Builder;
+import org.apache.parquet.schema.Types.GroupBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+
+import static org.apache.parquet.schema.OriginalType.ENUM;
+import static org.apache.parquet.schema.OriginalType.UTF8;
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.*;
 
 /**
  * <p/>
@@ -65,10 +58,15 @@ public class ProtoSchemaConverter {
   /* Iterates over list of fields. **/
   private <T> GroupBuilder<T> convertFields(GroupBuilder<T> groupBuilder, List<Descriptors.FieldDescriptor> fieldDescriptors) {
     for (Descriptors.FieldDescriptor fieldDescriptor : fieldDescriptors) {
-      groupBuilder =
+      if (fieldDescriptor.isMapField() || fieldDescriptor.isRepeated()) {
+        groupBuilder =
+          addField(fieldDescriptor, groupBuilder).named(RandomStringUtils.random(20, "abc"));
+      } else {
+        groupBuilder =
           addField(fieldDescriptor, groupBuilder)
-          .id(fieldDescriptor.getNumber())
-          .named(fieldDescriptor.getName());
+            .id(fieldDescriptor.getNumber())
+            .named(fieldDescriptor.getName());
+      }
     }
     return groupBuilder;
   }
@@ -95,14 +93,70 @@ public class ProtoSchemaConverter {
       case BYTE_STRING: return builder.primitive(BINARY, repetition);
       case STRING: return builder.primitive(BINARY, repetition).as(UTF8);
       case MESSAGE: {
-        GroupBuilder<GroupBuilder<T>> group = builder.group(repetition);
-        convertFields(group, descriptor.getMessageType().getFields());
-        return group;
+        if (descriptor.isMapField()) {
+          builder.addField(mapAsGroup(descriptor, repetition));
+        } else if (descriptor.isRepeated()) {
+          builder.addField(listAsGroup(descriptor, repetition));
+        } else {
+          GroupBuilder<GroupBuilder<T>> group = builder.group(repetition);
+          convertFields(group, descriptor.getMessageType().getFields());
+          return group;
+        }
       }
       case ENUM: return builder.primitive(BINARY, repetition).as(ENUM);
       default:
         throw new UnsupportedOperationException("Cannot convert Protocol Buffer: unknown type " + javaType);
     }
+  }
+
+  private GroupType mapAsGroup(Descriptors.FieldDescriptor descriptor, Type.Repetition repetition) {
+    Descriptors.FieldDescriptor.Type mapValueType = descriptor.getMessageType().getFields().get(1).getType();
+
+    Types.PrimitiveBuilder<PrimitiveType> primitiveBuilder;
+    switch(mapValueType) {
+      case INT32:
+        primitiveBuilder = Types.primitive(INT32, repetition);
+        break;
+      case INT64:
+        primitiveBuilder = Types.primitive(INT64, repetition);
+        break;
+      case STRING:
+        primitiveBuilder = Types.primitive(BINARY, repetition).as(UTF8);
+        break;
+      case DOUBLE:
+        primitiveBuilder = Types.primitive(DOUBLE, repetition);
+        break;
+      default:
+        throw new RuntimeException("Need to finish the implementation here.");
+    }
+
+    return ConversionPatterns.stringKeyMapType(repetition, descriptor.getName(), primitiveBuilder.named("value"));
+  }
+
+  private GroupType listAsGroup(Descriptors.FieldDescriptor descriptor, Type.Repetition repetition) {
+    Descriptors.FieldDescriptor.Type mapValueType = descriptor.getMessageType().getFields().get(1).getType();
+
+    Types.PrimitiveBuilder<PrimitiveType> primitiveBuilder;
+    switch(mapValueType) {
+      case INT32:
+        primitiveBuilder = Types.primitive(INT32, repetition);
+        break;
+      case INT64:
+        primitiveBuilder = Types.primitive(INT64, repetition);
+        break;
+      case STRING:
+        primitiveBuilder = Types.primitive(BINARY, repetition).as(UTF8);
+        break;
+      case DOUBLE:
+        primitiveBuilder = Types.primitive(DOUBLE, repetition);
+        break;
+      default:
+        throw new RuntimeException("Need to finish the implementation here.");
+    }
+
+//    return ConversionPatterns.stringKeyMapType(repetition, descriptor.getName(), primitiveBuilder.named("value"));
+    return ConversionPatterns.listOfElements(repetition, descriptor.getName(),
+      primitiveBuilder.named("value"));
   }
 
 }
