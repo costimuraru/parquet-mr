@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,12 +18,7 @@
  */
 package org.apache.parquet.proto;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Message;
-import com.google.protobuf.MessageOrBuilder;
-import com.google.protobuf.TextFormat;
+import com.google.protobuf.*;
 import com.twitter.elephantbird.util.Protobufs;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.hadoop.BadConfigurationException;
@@ -31,9 +26,7 @@ import org.apache.parquet.hadoop.api.WriteSupport;
 import org.apache.parquet.io.InvalidRecordException;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.RecordConsumer;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.IncompatibleSchemaModificationException;
-import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.*;
 import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -162,22 +155,40 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
         Type type = schema.getType(name);
         FieldWriter writer = createWriter(fieldDescriptor, type);
 
-        if(fieldDescriptor.isRepeated()) {
+        if(fieldDescriptor.isRepeated() && !fieldDescriptor.isMapField()) {
          writer = new ArrayWriter(writer);
         }
 
         writer.setFieldName(name);
-        writer.setIndex(schema.getFieldIndex(name));
+        writer.setIndex(getFieldIndex(schema, name));
 
         fieldWriters[fieldDescriptor.getIndex()] = writer;
       }
+    }
+
+    private Type getType(GroupType schema, String name) {
+      if (schema.getFieldCount() > 0 && schema.getFields().get(0).getOriginalType() == OriginalType.MAP_KEY_VALUE) {
+        return schema.getFields().get(0).asGroupType().getType(name);
+      }
+      return schema.getType(name);
+    }
+
+    private int getFieldIndex(GroupType schema, String name) {
+      if (schema.getFieldCount() > 0 && schema.getFields().get(0).getOriginalType() == OriginalType.MAP_KEY_VALUE) {
+        return schema.getFields().get(0).asGroupType().getFieldIndex(name);
+      }
+      return schema.getFieldIndex(name);
     }
 
     private FieldWriter createWriter(Descriptors.FieldDescriptor fieldDescriptor, Type type) {
 
       switch (fieldDescriptor.getJavaType()) {
         case STRING: return new StringWriter() ;
-        case MESSAGE: return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
+        case MESSAGE:
+          if (fieldDescriptor.isMapField()) {
+            return new MapWriter(type);
+          }
+          return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
         case INT: return new IntWriter();
         case LONG: return new LongWriter();
         case FLOAT: return new FloatWriter();
@@ -293,6 +304,36 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     @Override
     final void writeRawValue(Object value) {
       recordConsumer.addLong((Long) value);
+    }
+  }
+
+  class MapWriter extends FieldWriter {
+
+    private final GroupType type;
+
+    public MapWriter(Type type) {
+      super();
+      this.type = type.asGroupType();
+    }
+
+    @Override
+    final void writeRawValue(Object value) {
+      recordConsumer.startField("map", 0);
+      recordConsumer.startGroup();
+//      for(MapEntry<Object, Object> entry : (Collection<Map<Object, Object>>) value) {
+//        recordConsumer.addLong((Long) value);
+//      }
+      recordConsumer.startField("key", 0);
+      Binary binaryString = Binary.fromString("some key");
+      recordConsumer.addBinary(binaryString);
+      recordConsumer.endField("key", 1);
+
+      recordConsumer.startField("value", 1);
+      recordConsumer.addDouble(2.0);
+      recordConsumer.endField("value", 1);
+
+      recordConsumer.endGroup();
+      recordConsumer.endField("map", 0);
     }
   }
 
