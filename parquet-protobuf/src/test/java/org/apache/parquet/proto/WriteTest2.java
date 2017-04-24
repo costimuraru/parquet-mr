@@ -22,39 +22,34 @@ import com.google.common.collect.Lists;
 import com.google.protobuf.Message;
 import com.google.protobuf.MessageOrBuilder;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.proto.test.MapProtobuf;
+import org.apache.parquet.proto.test.ListOfListOuterClass;
+import org.apache.parquet.proto.test.ListOfListOuterClass.ListOfList;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class WriteTest {
+public class WriteTest2 {
   public static void main(String[] args) throws IOException {
 
     List<MessageOrBuilder> messages = Lists.newArrayList();
     for (int i = 0; i < 1; i++) {
 
-      MapProtobuf.Log message = MapProtobuf.Log.newBuilder()
+      ListOfList message = ListOfList.newBuilder()
         .setIp("ip")
-        .setTimestamp("timestamp")
-        .setMessage("message")
-        .putAdditional("one-key", "value")
-        .addMyArray("array_value_0")
-        .addMyArrayOfMessages(MapProtobuf.MySubMessage.newBuilder().setFirstField(1000))
-        .addMyArrayOfMessages(MapProtobuf.MySubMessage.newBuilder().setFirstField(2000))
-        .addMyArrayOfMessages(MapProtobuf.MySubMessage.newBuilder().setFirstField(3000))
+        .addMyArrayOfMessages(ListOfListOuterClass.MyInner.newBuilder().setInnerFieldInt("123").addInnerFieldArray2(2).addInnerFieldArray(1))
         .build();
 
       messages.add(message);
     }
 
     try {
-      Files.delete(Paths.get("/tmp/test21.parquet"));
+      Files.delete(Paths.get("/tmp/test23.parquet"));
     } catch(Exception e) {}
 
-    Path outputPath = new Path("/tmp/test21.parquet");
-    writeMessages(MapProtobuf.Log.class, outputPath, messages.toArray(new MessageOrBuilder[messages.size()]));
+    Path outputPath = new Path("/tmp/test23.parquet");
+    writeMessages(ListOfList.class, outputPath, messages.toArray(new MessageOrBuilder[messages.size()]));
 
   }
 

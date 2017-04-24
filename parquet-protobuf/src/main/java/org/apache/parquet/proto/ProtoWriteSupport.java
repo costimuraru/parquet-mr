@@ -167,13 +167,6 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       }
     }
 
-    private Type getType(GroupType schema, String name) {
-      if (schema.getFieldCount() > 0 && schema.getFields().get(0).getOriginalType() == OriginalType.MAP_KEY_VALUE) {
-        return schema.getFields().get(0).asGroupType().getType(name);
-      }
-      return schema.getType(name);
-    }
-
     private int getFieldIndex(GroupType schema, String name) {
       if (schema.getFieldCount() > 0 && schema.getFields().get(0).getOriginalType() == OriginalType.MAP_KEY_VALUE) {
         return schema.getFields().get(0).asGroupType().getFieldIndex(name);
@@ -188,8 +181,18 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
         case MESSAGE:
           if (fieldDescriptor.isMapField()) {
             return createMapWriter(fieldDescriptor, type);
+          } else if (fieldDescriptor.isRepeated()) {
+            GroupType groupType = type.asGroupType();
+            if (groupType.getOriginalType() == OriginalType.LIST || groupType.getOriginalType() == OriginalType.MAP) {
+              // De-encapsulate inner group.
+              MessageWriter myMessageWriter = new MessageWriter(fieldDescriptor.getMessageType(), groupType.getType(0).asGroupType());
+//              myMessageWriter.setFieldName(fieldDescriptor.getName());
+//              myMessageWriter.setIndex(fieldDescriptor.getIndex());
+              return myMessageWriter;
+            }
+          } else {
+            return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
           }
-          return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
         case INT: return new IntWriter();
         case LONG: return new LongWriter();
         case FLOAT: return new FloatWriter();

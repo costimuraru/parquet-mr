@@ -126,20 +126,13 @@ public class ProtoSchemaConverter {
 
           return tier3.named("map");
         } else if (descriptor.isRepeated()) {
-          /// TODO repeated message
 
           GroupBuilder<GroupBuilder<T>> tier1 = builder.group(Type.Repetition.REQUIRED).as(OriginalType.LIST);
           GroupBuilder<GroupBuilder<GroupBuilder<T>>> tier2 = tier1.group(Type.Repetition.REPEATED);
-          PrimitiveTypeName primitiveType = getPrimitiveType(descriptor);
 
-          if (primitiveType == BINARY) {
-            OriginalType originalType = descriptor.getJavaType() == JavaType.ENUM ? ENUM : UTF8;
-            return tier2
-              .primitive(primitiveType, Type.Repetition.REQUIRED).as(originalType).named("first_field").named("array");
-          } else {
-            return tier2
-              .primitive(primitiveType, Type.Repetition.REQUIRED).named("first_field").named("array");
-          }
+          convertFields(tier2, descriptor.getMessageType().getFields());
+
+          return tier2.named("array");
         } else {
           GroupBuilder<GroupBuilder<T>> group = builder.group(repetition);
           convertFields(group, descriptor.getMessageType().getFields());

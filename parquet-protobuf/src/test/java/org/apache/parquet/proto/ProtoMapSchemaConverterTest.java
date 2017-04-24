@@ -19,6 +19,7 @@
 package org.apache.parquet.proto;
 
 import com.google.protobuf.Message;
+import org.apache.parquet.proto.test.ListOfListOuterClass;
 import org.apache.parquet.proto.test.MapProtobuf;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.MessageTypeParser;
@@ -46,17 +47,46 @@ public class ProtoMapSchemaConverterTest {
   @Test
   public void testConvertMap() throws Exception {
     String expectedSchema =
-      "message TestProtobuf.MyMessage {\n" +
-        "  required int32 my_id = 1;\n" +
-        "  required group my_map (MAP) = 2 {\n" +
+      "message TestProtobuf.Log {\n" +
+        "  optional binary ip (UTF8) = 1;\n" +
+        "  optional binary timestamp (UTF8) = 2;\n" +
+        "  optional binary message (UTF8) = 3;\n" +
+        "  required group additional (MAP) = 4 {\n" +
         "    repeated group map (MAP_KEY_VALUE) {\n" +
         "      required binary key (UTF8);\n" +
-        "      required double value;\n" +
+        "      required binary value (UTF8);\n" +
+        "    }\n" +
+        "  }\n" +
+        "  required group my_array (LIST) = 5 {\n" +
+        "    repeated binary array (UTF8);\n" +
+        "  }\n" +
+        "  required group my_array_of_messages (LIST) = 6 {\n" +
+        "    repeated group array {\n" +
+        "      optional int32 first_field = 1;\n" +
+        "    }\n" +
+        "  }\n" +
+        "}\n";
+
+    testConversion(MapProtobuf.Log.class, expectedSchema);
+  }
+
+
+  @Test
+  public void testConvertListOfList() throws Exception {
+    String expectedSchema =
+      "message TestProtobuf.ListOfList {\n" +
+        "  optional binary ip (UTF8) = 1;\n" +
+        "  required group my_array_of_messages (LIST) = 2 {\n" +
+        "    repeated group array {\n" +
+        "      optional int32 inner_field_1int = 1;\n" +
+        "      required group inner_field_array (LIST) = 2 {\n" +
+        "        repeated int32 array;\n" +
+        "      }\n" +
         "    }\n" +
         "  }\n" +
         "}";
 
-    testConversion(MapProtobuf.Log.class, expectedSchema);
+    testConversion(ListOfListOuterClass.ListOfList.class, expectedSchema);
   }
 
 }
