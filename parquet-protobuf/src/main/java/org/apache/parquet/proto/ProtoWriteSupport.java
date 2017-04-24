@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Array;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,7 +187,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
         case STRING: return new StringWriter() ;
         case MESSAGE:
           if (fieldDescriptor.isMapField()) {
-            return new MapWriter(type);
+            return createMapWriter(fieldDescriptor, type);
           }
           return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
         case INT: return new IntWriter();
@@ -199,6 +200,27 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       }
 
       return unknownType(fieldDescriptor);//should not be executed, always throws exception.
+    }
+
+    private MapWriter createMapWriter(Descriptors.FieldDescriptor fieldDescriptor, Type type) {
+      List<Descriptors.FieldDescriptor> fields = fieldDescriptor.getMessageType().getFields();
+      if (fields.size() != 2) {
+        throw new RuntimeException("Expected two fields: key/value, but got: " + fields);
+      }
+
+      // KeyFieldWriter
+      Descriptors.FieldDescriptor keyProtoField = fields.get(0);
+      FieldWriter keyWriter = createWriter(keyProtoField, type);
+      keyWriter.setFieldName(keyProtoField.getName());
+      keyWriter.setIndex(0);
+
+      // ValueFieldWriter
+      Descriptors.FieldDescriptor valueProtoField = fields.get(1);
+      FieldWriter valueWriter = createWriter(valueProtoField, type);
+      valueWriter.setFieldName(valueProtoField.getName());
+      valueWriter.setIndex(1);
+
+      return new MapWriter(keyWriter, valueWriter);
     }
 
     /** Writes top level message. It cannot call startGroup() */
@@ -309,29 +331,23 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
   class MapWriter extends FieldWriter {
 
-    private final GroupType type;
+    private final FieldWriter keyWriter;
+    private final FieldWriter valueWriter;
 
-    public MapWriter(Type type) {
+    public MapWriter(FieldWriter keyWriter, FieldWriter valueWriter) {
       super();
-      this.type = type.asGroupType();
+      this.keyWriter = keyWriter;
+      this.valueWriter = valueWriter;
     }
 
     @Override
     final void writeRawValue(Object value) {
       recordConsumer.startField("map", 0);
       recordConsumer.startGroup();
-//      for(MapEntry<Object, Object> entry : (Collection<Map<Object, Object>>) value) {
-//        recordConsumer.addLong((Long) value);
-//      }
-      recordConsumer.startField("key", 0);
-      Binary binaryString = Binary.fromString("some key");
-      recordConsumer.addBinary(binaryString);
-      recordConsumer.endField("key", 1);
-
-      recordConsumer.startField("value", 1);
-      recordConsumer.addDouble(2.0);
-      recordConsumer.endField("value", 1);
-
+      for(MapEntry<Object, Object> entry : (Collection<MapEntry<Object, Object>>) value) {
+        keyWriter.writeField(entry.getKey());
+        valueWriter.writeField(entry.getValue());
+      }
       recordConsumer.endGroup();
       recordConsumer.endField("map", 0);
     }
