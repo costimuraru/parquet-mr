@@ -282,9 +282,15 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       recordConsumer.startField(fieldName, index);
       List<?> list = (List<?>) value;
 
+      recordConsumer.startField("array", 0); // This is the wrapper group for the map field
+//      recordConsumer.startGroup();
       for (Object listEntry: list) {
+//        recordConsumer.startField("first_field", 0);
         fieldWriter.writeRawValue(listEntry);
+//        recordConsumer.endField("first_field", 0);
       }
+//      recordConsumer.endGroup();
+      recordConsumer.endField("array", 0);
 
       recordConsumer.endField(fieldName, index);
     }
@@ -344,7 +350,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     final void writeRawValue(Object value) {
       recordConsumer.startField("map", 0); // This is the wrapper group for the map field
       recordConsumer.startGroup();
-      for(MapEntry<Object, Object> entry : (Collection<MapEntry<Object, Object>>) value) {
+      for(MapEntry<?, ?> entry : (Collection<MapEntry<?, ?>>) value) {
         keyWriter.writeField(entry.getKey());
         valueWriter.writeField(entry.getValue());
       }

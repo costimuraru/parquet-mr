@@ -21,7 +21,10 @@ package TestProtobuf;
 
 option java_package = "org.apache.parquet.proto.test";
 
-message MyMessage {
-    required int64 my_id = 1;
-    map<string, double> my_map = 2;
+message Log {
+    required string ip = 1;
+    required string timestamp = 2;
+    required string message = 3;
+    map<string, string> additional = 4;
+    repeated string my_array = 5;
 }

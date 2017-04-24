@@ -35,9 +35,12 @@ public class WriteTest {
     List<MessageOrBuilder> messages = Lists.newArrayList();
     for (int i = 0; i < 1; i++) {
 
-      MapProtobuf.MyMessage message = MapProtobuf.MyMessage.newBuilder()
-        .setMyId(123)
-        .putMyMap("somekey", 2.0)
+      MapProtobuf.Log message = MapProtobuf.Log.newBuilder()
+        .setIp("ip")
+        .setTimestamp("timestamp")
+        .setMessage("message")
+        .putAdditional("one-key", "value")
+        .addMyArray("array_value_0")
         .build();
 
       messages.add(message);
@@ -48,7 +51,7 @@ public class WriteTest {
     } catch(Exception e) {}
 
     Path outputPath = new Path("/tmp/test20.parquet");
-    writeMessages(MapProtobuf.MyMessage.class, outputPath, messages.toArray(new MessageOrBuilder[messages.size()]));
+    writeMessages(MapProtobuf.Log.class, outputPath, messages.toArray(new MessageOrBuilder[messages.size()]));
 
   }
 
