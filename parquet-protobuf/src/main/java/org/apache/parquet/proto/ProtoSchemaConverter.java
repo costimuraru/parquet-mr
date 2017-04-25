@@ -89,8 +89,7 @@ public class ProtoSchemaConverter {
       return addRepeatedPrimitive(descriptor, parquetType.primitiveType, builder);
     }
 
-    Type.Repetition repetition = getRepetition(descriptor);
-    return builder.primitive(parquetType.primitiveType, repetition).as(parquetType.originalType);
+    return builder.primitive(parquetType.primitiveType, getRepetition(descriptor)).as(parquetType.originalType);
   }
 
   private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addRepeatedPrimitive(Descriptors.FieldDescriptor descriptor,
