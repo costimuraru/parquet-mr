@@ -38,7 +38,7 @@ public class WriteTest2 {
 
       ListOfList message = ListOfList.newBuilder()
         .setIp("ip")
-        .addMyArrayOfMessages(ListOfListOuterClass.MyInner.newBuilder().setInnerFieldInt("123").addInnerFieldArray2(2).addInnerFieldArray(1))
+        .addFirstArray(ListOfListOuterClass.MyInner.newBuilder().addSecondArray(10).addThirdArray(2).putMyMap("key", "value"))
         .build();
 
       messages.add(message);

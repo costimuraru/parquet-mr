@@ -176,23 +176,12 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     private FieldWriter createWriter(Descriptors.FieldDescriptor fieldDescriptor, Type type) {
 
+      if (fieldDescriptor.getJavaType() == Descriptors.FieldDescriptor.JavaType.MESSAGE) {
+        createMessageWriter(fieldDescriptor, type);
+      }
       switch (fieldDescriptor.getJavaType()) {
         case STRING: return new StringWriter() ;
-        case MESSAGE:
-          if (fieldDescriptor.isMapField()) {
-            return createMapWriter(fieldDescriptor, type);
-          } else if (fieldDescriptor.isRepeated()) {
-            GroupType groupType = type.asGroupType();
-            if (groupType.getOriginalType() == OriginalType.LIST || groupType.getOriginalType() == OriginalType.MAP) {
-              // De-encapsulate inner group.
-              MessageWriter myMessageWriter = new MessageWriter(fieldDescriptor.getMessageType(), groupType.getType(0).asGroupType());
-//              myMessageWriter.setFieldName(fieldDescriptor.getName());
-//              myMessageWriter.setIndex(fieldDescriptor.getIndex());
-              return myMessageWriter;
-            }
-          } else {
-            return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
-          }
+        case MESSAGE: return createMessageWriter(fieldDescriptor, type);
         case INT: return new IntWriter();
         case LONG: return new LongWriter();
         case FLOAT: return new FloatWriter();
@@ -205,10 +194,25 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       return unknownType(fieldDescriptor);//should not be executed, always throws exception.
     }
 
+    private FieldWriter createMessageWriter(Descriptors.FieldDescriptor fieldDescriptor, Type type) {
+      // Maps and lists are wrapped with a special group. De-encapsulate them.
+      if (fieldDescriptor.isMapField()) {
+        return createMapWriter(fieldDescriptor, type);
+      } else if (fieldDescriptor.isRepeated()) {
+        GroupType groupType = type.asGroupType();
+        if (groupType.getOriginalType() == OriginalType.LIST) {
+          GroupType actualListType = groupType.getType(0).asGroupType();
+          return new MessageWriter(fieldDescriptor.getMessageType(), actualListType);
+        }
+      }
+
+      return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
+    }
+
     private MapWriter createMapWriter(Descriptors.FieldDescriptor fieldDescriptor, Type type) {
       List<Descriptors.FieldDescriptor> fields = fieldDescriptor.getMessageType().getFields();
       if (fields.size() != 2) {
-        throw new RuntimeException("Expected two fields: key/value, but got: " + fields);
+        throw new UnsupportedOperationException("Expected two fields for the map (key/value), but got: " + fields);
       }
 
       // KeyFieldWriter
@@ -285,14 +289,10 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       recordConsumer.startField(fieldName, index);
       List<?> list = (List<?>) value;
 
-      recordConsumer.startField("array", 0); // This is the wrapper group for the map field
-//      recordConsumer.startGroup();
+      recordConsumer.startField("array", 0); // This is the wrapper group for the array field
       for (Object listEntry: list) {
-//        recordConsumer.startField("first_field", 0);
         fieldWriter.writeRawValue(listEntry);
-//        recordConsumer.endField("first_field", 0);
       }
-//      recordConsumer.endGroup();
       recordConsumer.endField("array", 0);
 
       recordConsumer.endField(fieldName, index);
