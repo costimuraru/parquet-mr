@@ -72,6 +72,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
    * */
   @Override
   public void write(T record) {
+    System.out.println("recordConsumer.startMessage();");
     recordConsumer.startMessage();
     try {
       messageWriter.writeTopLevelMessage(record);
@@ -80,6 +81,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       LOG.error("Cannot write message " + e.getMessage() + " : " + m);
       throw e;
     }
+    System.out.println("recordConsumer.endMessage();");
     recordConsumer.endMessage();
   }
 
@@ -136,8 +138,10 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     /** Used for writing nonrepeated (optional, required) fields*/
     void writeField(Object value) {
+      System.out.println("recordConsumer.startField(fieldName=" + fieldName + ", index=" + index + ");");
       recordConsumer.startField(fieldName, index);
       writeRawValue(value);
+      System.out.println("recordConsumer.endField(fieldName=" + fieldName + ", index=" + index + ");");
       recordConsumer.endField(fieldName, index);
     }
   }
@@ -238,18 +242,27 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     /** Writes message as part of repeated field. It cannot start field*/
     @Override
     final void writeRawValue(Object value) {
+      System.out.println("recordConsumer.startGroup();");
       recordConsumer.startGroup();
       writeAllFields((MessageOrBuilder) value);
+
+      System.out.println("recordConsumer.endGroup();");
       recordConsumer.endGroup();
     }
 
     /** Used for writing nonrepeated (optional, required) fields*/
     @Override
     final void writeField(Object value) {
+      System.out.println("recordConsumer.startField(fieldName=" + fieldName + ", index=" + index + ");");
       recordConsumer.startField(fieldName, index);
+
+      System.out.println("recordConsumer.startGroup();");
       recordConsumer.startGroup();
       writeAllFields((MessageOrBuilder) value);
+      System.out.println("recordConsumer.endGroup();");
       recordConsumer.endGroup();
+
+      System.out.println("recordConsumer.endField(fieldName=" + fieldName + ", index=" + index + ");");
       recordConsumer.endField(fieldName, index);
     }
 
@@ -286,15 +299,25 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     @Override
     final void writeField(Object value) {
+      System.out.println("recordConsumer.startField(fieldName=" + fieldName + ", index=" + index + ");");
       recordConsumer.startField(fieldName, index);
+
+      System.out.println("recordConsumer.startGroup();");
+      recordConsumer.startGroup();
       List<?> list = (List<?>) value;
 
+      System.out.println("recordConsumer.startField(fieldName=array, index=0);");
       recordConsumer.startField("array", 0); // This is the wrapper group for the array field
       for (Object listEntry: list) {
         fieldWriter.writeRawValue(listEntry);
       }
+      System.out.println("recordConsumer.endField(fieldName=array, index=0);");
       recordConsumer.endField("array", 0);
 
+      System.out.println("recordConsumer.endGroup();");
+      recordConsumer.endGroup();
+
+      System.out.println("recordConsumer.endField(fieldName=" + fieldName + ", index=" + index + ");");
       recordConsumer.endField(fieldName, index);
     }
   }
@@ -319,6 +342,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     @Override
     final void writeRawValue(Object value) {
       Binary binaryString = Binary.fromString((String) value);
+      System.out.println("recordConsumer.addBinary(binaryString=" + binaryString + ");");
       recordConsumer.addBinary(binaryString);
     }
   }
@@ -326,6 +350,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
   class IntWriter extends FieldWriter {
     @Override
     final void writeRawValue(Object value) {
+      System.out.println("recordConsumer.addInteger(value=" + value + ");");
       recordConsumer.addInteger((Integer) value);
     }
   }
@@ -334,6 +359,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     @Override
     final void writeRawValue(Object value) {
+      System.out.println("recordConsumer.addLong(value=" + value + ");");
       recordConsumer.addLong((Long) value);
     }
   }
@@ -351,13 +377,20 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     @Override
     final void writeRawValue(Object value) {
+      System.out.println("recordConsumer.startField(field=map, index=0);");
       recordConsumer.startField("map", 0); // This is the wrapper group for the map field
+
+      System.out.println("recordConsumer.startGroup();");
       recordConsumer.startGroup();
       for(MapEntry<?, ?> entry : (Collection<MapEntry<?, ?>>) value) {
         keyWriter.writeField(entry.getKey());
         valueWriter.writeField(entry.getValue());
       }
+
+      System.out.println("recordConsumer.endGroup();");
       recordConsumer.endGroup();
+
+      System.out.println("recordConsumer.endField(field=map, index=0);");
       recordConsumer.endField("map", 0);
     }
   }
@@ -365,6 +398,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
   class FloatWriter extends FieldWriter {
     @Override
     final void writeRawValue(Object value) {
+      System.out.println("recordConsumer.addFloat(value=" + value + ");");
       recordConsumer.addFloat((Float) value);
     }
   }
@@ -372,6 +406,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
   class DoubleWriter extends FieldWriter {
     @Override
     final void writeRawValue(Object value) {
+      System.out.println("recordConsumer.addDouble(value=" + value + ");");
       recordConsumer.addDouble((Double) value);
     }
   }
@@ -380,6 +415,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     @Override
     final void writeRawValue(Object value) {
       Binary binary = Binary.fromString(((Descriptors.EnumValueDescriptor) value).getName());
+      System.out.println("recordConsumer.addBinary(binary=" + binary + ");");
       recordConsumer.addBinary(binary);
     }
   }
@@ -387,6 +423,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
   class BooleanWriter extends FieldWriter {
     @Override
     final void writeRawValue(Object value) {
+      System.out.println("recordConsumer.addBoolean(value=" + value + ");");
       recordConsumer.addBoolean((Boolean) value);
     }
   }
@@ -396,6 +433,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     final void writeRawValue(Object value) {
       ByteString byteString = (ByteString) value;
       Binary binary = Binary.fromConstantByteArray(byteString.toByteArray());
+      System.out.println("recordConsumer.addBinary(value=" + value + ");");
       recordConsumer.addBinary(binary);
     }
   }
