@@ -20,6 +20,8 @@ package org.apache.parquet.proto;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.proto.test.ListOfListOuterClass;
+import org.apache.parquet.proto.test.ListOfMessageOuterClass;
 import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleList;
 import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleListOrBuilder;
 
@@ -27,7 +29,7 @@ import java.io.IOException;
 
 public class ReadTest {
 
-  public static void main(String[] args) throws IOException {
+  public static void main1(String[] args) throws IOException {
 
     Path outputPath = new Path("/tmp/test24.parquet");
 
@@ -36,21 +38,21 @@ public class ReadTest {
     System.out.println(log);
   }
 
-//  public static void main(String[] args) throws IOException {
-//
-//    Path outputPath = new Path("/tmp/test23.parquet");
-//
-//    ParquetReader<ListOfList> reader = ProtoParquetReader.<ListOfList>builder(outputPath).build();
-//    ListOfListOuterClass.ListOfListOrBuilder log = reader.read();
-//    System.out.println(log);
-//  }
+  public static void main2(String[] args) throws IOException {
 
-//  public static void main(String[] args) throws IOException {
-//
-//    Path outputPath = new Path("/tmp/test25.parquet");
-//
-//    ParquetReader<ListOfMessage> reader = ProtoParquetReader.<ListOfMessage>builder(outputPath).build();
-//    Object log = reader.read();
-//    System.out.println(log);
-//  }
+    Path outputPath = new Path("/tmp/test23.parquet");
+
+    ParquetReader<ListOfListOuterClass.ListOfList> reader = ProtoParquetReader.<ListOfListOuterClass.ListOfList>builder(outputPath).build();
+    ListOfListOuterClass.ListOfListOrBuilder log = reader.read();
+    System.out.println(log);
+  }
+
+  public static void main(String[] args) throws IOException {
+
+    Path outputPath = new Path("/tmp/test25.parquet");
+
+    ParquetReader<ListOfMessageOuterClass.ListOfMessage> reader = ProtoParquetReader.<ListOfMessageOuterClass.ListOfMessage>builder(outputPath).build();
+    Object log = reader.read();
+    System.out.println(log);
+  }
 }
