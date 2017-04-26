@@ -18,39 +18,51 @@
  */
 package org.apache.parquet.proto;
 
+import com.google.common.collect.Lists;
+import com.google.protobuf.Message;
+import com.google.protobuf.MessageOrBuilder;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleList;
-import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleListOrBuilder;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 
-public class ReadTest {
-
+public class WriteTest3 {
   public static void main(String[] args) throws IOException {
 
-    Path outputPath = new Path("/tmp/test24.parquet");
+    List<MessageOrBuilder> messages = Lists.newArrayList();
+    for (int i = 0; i < 1; i++) {
 
-    ParquetReader<SimpleList> reader = ProtoParquetReader.<SimpleList>builder(outputPath).build();
-    SimpleListOrBuilder log = reader.read();
-    System.out.println(log);
+      SimpleList message = SimpleList.newBuilder()
+        .setTopField("first_field")
+        .addFirstArray(2)
+        .build();
+
+      messages.add(message);
+    }
+
+    try {
+      Files.delete(Paths.get("/tmp/test24.parquet"));
+    } catch(Exception e) {}
+
+    Path outputPath = new Path("/tmp/test24.parquet");
+    writeMessages(SimpleList.class, outputPath, messages.toArray(new MessageOrBuilder[messages.size()]));
+
   }
 
-//  public static void main(String[] args) throws IOException {
-//
-//    Path outputPath = new Path("/tmp/test23.parquet");
-//
-//    ParquetReader<ListOfList> reader = ProtoParquetReader.<ListOfList>builder(outputPath).build();
-//    ListOfListOuterClass.ListOfListOrBuilder log = reader.read();
-//    System.out.println(log);
-//  }
+  public static void writeMessages(Class<? extends Message> cls, Path file,
+                                   MessageOrBuilder... records) throws IOException {
 
-//  public static void main(String[] args) throws IOException {
-//
-//    Path outputPath = new Path("/tmp/test25.parquet");
-//
-//    ParquetReader<ListOfMessage> reader = ProtoParquetReader.<ListOfMessage>builder(outputPath).build();
-//    Object log = reader.read();
-//    System.out.println(log);
-//  }
+    ProtoParquetWriter<MessageOrBuilder> writer = new ProtoParquetWriter<MessageOrBuilder>(file, cls);
+
+    try {
+      for (MessageOrBuilder record : records) {
+        writer.write(record);
+      }
+    } finally {
+      writer.close();
+    }
+  }
 }
