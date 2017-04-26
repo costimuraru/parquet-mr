@@ -23,12 +23,11 @@ package TestProtobuf;
 option java_package = "org.apache.parquet.proto.test";
 
 message ListOfList {
-    string ip = 1;
-    repeated MyInner first_array = 2;
+    string top_field = 1;
+    repeated MyInnerMessage first_array = 2;
 }
 
-message MyInner {
-    repeated int32 second_array = 1;
-    repeated int32 third_array = 2;
-    map<string,string> my_map = 3;
+message MyInnerMessage {
+    int32 inner_field = 1;
+    repeated int32 second_array = 2;
 }
