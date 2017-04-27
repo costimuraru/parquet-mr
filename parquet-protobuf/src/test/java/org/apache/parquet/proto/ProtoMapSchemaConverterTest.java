@@ -20,6 +20,7 @@ package org.apache.parquet.proto;
 
 import com.google.protobuf.Message;
 import org.apache.parquet.proto.test.ListOfListOuterClass;
+import org.apache.parquet.proto.test.ListOfMessageOuterClass;
 import org.apache.parquet.proto.test.MapProtobuf;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.MessageTypeParser;
@@ -87,6 +88,21 @@ public class ProtoMapSchemaConverterTest {
         "}";
 
     testConversion(ListOfListOuterClass.ListOfList.class, expectedSchema);
+  }
+
+  @Test
+  public void testConvertListOfMessage() throws Exception {
+    String expectedSchema =
+      "message TestProtobuf.ListOfMessage {\n" +
+        "  optional binary top_field (UTF8) = 1;\n" +
+        "  required group first_array (LIST) = 2 {\n" +
+        "    repeated group array {\n" +
+        "      optional binary second_field (UTF8) = 1;\n" +
+        "    }\n" +
+        "  }\n" +
+        "}";
+
+    testConversion(ListOfMessageOuterClass.ListOfMessage.class, expectedSchema);
   }
 
 }

@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,22 +18,20 @@
  */
 package org.apache.parquet.tools.command;
 
-import java.io.PrintWriter;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.tools.Main;
+import org.apache.parquet.tools.json.JsonRecordFormatter;
 import org.apache.parquet.tools.read.SimpleReadSupport;
 import org.apache.parquet.tools.read.SimpleRecord;
-import org.apache.parquet.tools.json.JsonRecordFormatter;
+
+import java.io.PrintWriter;
 
 public class CatCommand extends ArgsOnlyCommand {
   public static final String[] USAGE = new String[] {
@@ -73,7 +71,7 @@ public class CatCommand extends ArgsOnlyCommand {
 
     ParquetReader<SimpleRecord> reader = null;
     try {
-      PrintWriter writer = new PrintWriter(Main.out, true);
+      PrintWriter writer = new PrintWriter(System.out, true);
       reader = ParquetReader.builder(new SimpleReadSupport(), new Path(input)).build();
       ParquetMetadata metadata = ParquetFileReader.readFooter(new Configuration(), new Path(input));
       JsonRecordFormatter.JsonGroupFormatter formatter = JsonRecordFormatter.fromSchema(metadata.getFileMetaData().getSchema());

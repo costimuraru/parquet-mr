@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,8 +18,6 @@
  */
 package org.apache.parquet.tools.command;
 
-import java.text.DecimalFormat;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
@@ -28,12 +26,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.hadoop.util.HiddenFileFilter;
 import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.tools.Main;
 import org.apache.parquet.tools.util.MetadataUtils;
 import org.apache.parquet.tools.util.PrettyPrintWriter;
 
@@ -93,7 +89,8 @@ public class ShowSchemaCommand extends ArgsOnlyCommand {
     metaData = ParquetFileReader.readFooter(conf, file, NO_FILTER);
     MessageType schema = metaData.getFileMetaData().getSchema();
 
-    Main.out.println(schema);
+//    Main.out.println(schema);
+    System.out.println(schema);
     if (options.hasOption('d')) {
       PrettyPrintWriter out = PrettyPrintWriter.stdoutPrettyPrinter().build();
       MetadataUtils.showDetails(out, metaData);

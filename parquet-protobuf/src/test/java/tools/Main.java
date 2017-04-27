@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.parquet.tools;
+package tools;
 
 import org.apache.commons.cli.*;
 import org.apache.parquet.tools.command.Command;
@@ -216,6 +216,7 @@ public class Main {
       if (debug) ex.printStackTrace(Main.err);
       die("Invalid arguments: " + ex.getMessage(), true, name, command);
     } catch (Throwable th) {
+      th.printStackTrace();
       if (debug) th.printStackTrace(Main.err);
       die(th, false, name, command);
     }

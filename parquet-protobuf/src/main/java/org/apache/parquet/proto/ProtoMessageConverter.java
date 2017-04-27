@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,6 +30,7 @@ import org.apache.parquet.io.api.GroupConverter;
 import org.apache.parquet.io.api.PrimitiveConverter;
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.IncompatibleSchemaModificationException;
+import org.apache.parquet.schema.OriginalType;
 import org.apache.parquet.schema.Type;
 
 import java.util.HashMap;
@@ -110,6 +111,9 @@ class ProtoMessageConverter extends GroupConverter {
   private Converter newMessageConverter(final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, Type parquetType) {
 
     boolean isRepeated = fieldDescriptor.isRepeated();
+    if (fieldDescriptor.getName().equals("first_array")) {
+      isRepeated = true;
+    }
 
     ParentValueContainer parent;
 
@@ -133,9 +137,30 @@ class ProtoMessageConverter extends GroupConverter {
   }
 
 
-  private Converter newScalarConverter(ParentValueContainer pvc, Message.Builder parentBuilder, Descriptors.FieldDescriptor fieldDescriptor, Type parquetType) {
+  private Converter newScalarConverter(final ParentValueContainer pvc, final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, final Type parquetType) {
 
     JavaType javaType = fieldDescriptor.getJavaType();
+
+    if (parquetType.getOriginalType() == OriginalType.LIST) {
+      return new GroupConverter() {
+        @Override
+        public Converter getConverter(int fieldIndex) {
+          Message.Builder subBuilder = parentBuilder.newBuilderForField(fieldDescriptor);
+          GroupType parquetSchema = parquetType.asGroupType().getType(0).asGroupType(); // skip "array"
+          return new ProtoMessageConverter(pvc, subBuilder, parquetSchema);
+        }
+
+        @Override
+        public void start() {
+          System.out.println(">>> START");
+        }
+
+        @Override
+        public void end() {
+          System.out.println(">>> END");
+        }
+      };
+    }
 
     switch (javaType) {
       case STRING: return new ProtoStringConverter(pvc);
