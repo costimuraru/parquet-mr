@@ -22,6 +22,7 @@ import com.google.protobuf.Message;
 import org.apache.parquet.proto.test.ListOfListOuterClass;
 import org.apache.parquet.proto.test.ListOfMessageOuterClass;
 import org.apache.parquet.proto.test.MapProtobuf;
+import org.apache.parquet.proto.test.SimpleListOuterClass;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.MessageTypeParser;
 import org.junit.Test;
@@ -71,6 +72,33 @@ public class ProtoMapSchemaConverterTest {
     testConversion(MapProtobuf.Log.class, expectedSchema);
   }
 
+  @Test
+  public void testConvertSimpleList() throws Exception {
+    String expectedSchema =
+      "message TestProtobuf.SimpleList {\n" +
+        "  optional binary top_field (UTF8) = 1;\n" +
+        "  required group first_array (LIST) = 2 {\n" +
+        "    repeated int64 array;\n" +
+        "  }\n" +
+        "}";
+
+    testConversion(SimpleListOuterClass.SimpleList.class, expectedSchema);
+  }
+
+  @Test
+  public void testConvertListOfMessage() throws Exception {
+    String expectedSchema =
+      "message TestProto1buf.ListOfMessage {\n" +
+        "  optional binary top_field (UTF8) = 1;\n" +
+        "  required group first_array (LIST) = 2 {\n" +
+        "    repeated group array {\n" +
+        "      optional binary second_field (UTF8) = 1;\n" +
+        "    }\n" +
+        "  }\n" +
+        "}";
+
+    testConversion(ListOfMessageOuterClass.ListOfMessage.class, expectedSchema);
+  }
 
   @Test
   public void testConvertListOfList() throws Exception {
@@ -90,19 +118,6 @@ public class ProtoMapSchemaConverterTest {
     testConversion(ListOfListOuterClass.ListOfList.class, expectedSchema);
   }
 
-  @Test
-  public void testConvertListOfMessage() throws Exception {
-    String expectedSchema =
-      "message TestProtobuf.ListOfMessage {\n" +
-        "  optional binary top_field (UTF8) = 1;\n" +
-        "  required group first_array (LIST) = 2 {\n" +
-        "    repeated group array {\n" +
-        "      optional binary second_field (UTF8) = 1;\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
 
-    testConversion(ListOfMessageOuterClass.ListOfMessage.class, expectedSchema);
-  }
 
 }

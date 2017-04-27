@@ -29,7 +29,7 @@ import java.io.IOException;
 
 public class ReadTest {
 
-  public static void main1(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException {
 
     Path outputPath = new Path("/tmp/test24.parquet");
 
@@ -47,7 +47,7 @@ public class ReadTest {
     System.out.println(log);
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main3(String[] args) throws IOException {
 
     Path outputPath = new Path("/tmp/test25.parquet");
 

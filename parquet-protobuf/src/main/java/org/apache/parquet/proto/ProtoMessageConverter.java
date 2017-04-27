@@ -24,6 +24,7 @@ import com.google.protobuf.Message;
 import com.twitter.elephantbird.util.Protobufs;
 import org.apache.parquet.column.Dictionary;
 import org.apache.parquet.io.InvalidRecordException;
+import org.apache.parquet.io.ParquetDecodingException;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.Converter;
 import org.apache.parquet.io.api.GroupConverter;
@@ -111,9 +112,6 @@ class ProtoMessageConverter extends GroupConverter {
   private Converter newMessageConverter(final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, Type parquetType) {
 
     boolean isRepeated = fieldDescriptor.isRepeated();
-    if (fieldDescriptor.getName().equals("first_array")) {
-      isRepeated = true;
-    }
 
     ParentValueContainer parent;
 
@@ -133,45 +131,16 @@ class ProtoMessageConverter extends GroupConverter {
       };
     }
 
-    return newScalarConverter(parent, parentBuilder, fieldDescriptor, parquetType);
-  }
-
-  class ListWrapperConverter extends GroupConverter {
-    Converter[] myConverters = new Converter[100];
-    int myIndex = 0;
-
-    public ListWrapperConverter(final ParentValueContainer pvc, final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, final Type parquetType) {
-      if (fieldDescriptor.getJavaType() == JavaType.MESSAGE) {
-        Message.Builder subBuilder = parentBuilder.newBuilderForField(fieldDescriptor);
-        GroupType parquetSchema = parquetType.asGroupType().getType(0).asGroupType(); // skip "array"
-        myConverters[myIndex++] = new ProtoMessageConverter(pvc, subBuilder, parquetSchema);
-      } else {
-        myConverters[myIndex++] = new ProtoIntConverter(pvc); //TODO
-      }
-    }
-
-    @Override
-    public Converter getConverter(int fieldIndex) {
-      return myConverters[fieldIndex];
-    }
-
-    @Override
-    public void start() {
-    }
-
-    @Override
-    public void end() {
+    OriginalType originalType = parquetType.getOriginalType() == null ? OriginalType.UTF8 : parquetType.getOriginalType();
+    switch (originalType) {
+      case LIST: return new ListWrapperConverter(parent, parentBuilder, fieldDescriptor, parquetType);
+      case MAP_KEY_VALUE: // TODO
+      default: return newScalarConverter(parent, parentBuilder, fieldDescriptor, parquetType);
     }
   }
-
 
   private Converter newScalarConverter(final ParentValueContainer pvc, final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, final Type parquetType) {
-
     JavaType javaType = fieldDescriptor.getJavaType();
-
-    if (parquetType.getOriginalType() == OriginalType.LIST) {
-      return new ListWrapperConverter(pvc, parentBuilder, fieldDescriptor, parquetType);
-    }
 
     switch (javaType) {
       case STRING: return new ProtoStringConverter(pvc);
@@ -380,5 +349,55 @@ class ProtoMessageConverter extends GroupConverter {
       parent.add(str);
     }
 
+  }
+
+  /**
+   * Consider the following protobuf schema:
+   * message SimpleList {
+   *   repeated int64 first_array = 1;
+   * }
+   *
+   * A LIST wrapper is created in parquet for the above mentioned protobuf schema:
+   * message SimpleList {
+   *   required group first_array (LIST) = 1 {
+   *     repeated int32 array;
+   *   }
+   * }
+   *
+   * The LIST wrapper is used by 3rd party tools, such as Hive, to read parquet arrays. This wrapper contains one and
+   * only one field: either a primitive or another group.
+   *
+   * This class unwraps this additional LIST wrapper and makes it possible to read the underlying data and then convert
+   * it to protobuf.
+   */
+  final class ListWrapperConverter extends GroupConverter {
+    Converter converter;
+
+    public ListWrapperConverter(final ParentValueContainer pvc, final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, final Type parquetType) {
+      OriginalType originalType = parquetType.getOriginalType();
+      if (originalType != OriginalType.LIST) {
+        throw new ParquetDecodingException("Expected LIST wrapper. Found: " + originalType + " instead.");
+      }
+
+      Type parquetSchema = parquetType.asGroupType().getType(0); // unwrap (LIST)
+      converter = newMessageConverter(parentBuilder, fieldDescriptor, parquetSchema);
+    }
+
+    @Override
+    public Converter getConverter(int fieldIndex) {
+      if (fieldIndex > 0) {
+        throw new ParquetDecodingException("Unexpected multiple fields in the LIST wrapper");
+      }
+
+      return converter;
+    }
+
+    @Override
+    public void start() {
+    }
+
+    @Override
+    public void end() {
+    }
   }
 }
