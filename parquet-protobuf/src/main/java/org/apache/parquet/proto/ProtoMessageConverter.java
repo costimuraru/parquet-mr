@@ -352,6 +352,9 @@ class ProtoMessageConverter extends GroupConverter {
   }
 
   /**
+   * This class unwraps the additional LIST wrapper and makes it possible to read the underlying data and then convert
+   * it to protobuf.
+   *
    * Consider the following protobuf schema:
    * message SimpleList {
    *   repeated int64 first_array = 1;
@@ -365,10 +368,8 @@ class ProtoMessageConverter extends GroupConverter {
    * }
    *
    * The LIST wrapper is used by 3rd party tools, such as Hive, to read parquet arrays. This wrapper contains one and
-   * only one field: either a primitive or another group.
-   *
-   * This class unwraps this additional LIST wrapper and makes it possible to read the underlying data and then convert
-   * it to protobuf.
+   * only one field: either a primitive field (like in the example above, where we have an array of ints) or
+   * another group (array of messages).
    */
   final class ListWrapperConverter extends GroupConverter {
     Converter converter;
