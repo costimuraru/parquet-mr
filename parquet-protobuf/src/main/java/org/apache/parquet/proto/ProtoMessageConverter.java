@@ -136,30 +136,41 @@ class ProtoMessageConverter extends GroupConverter {
     return newScalarConverter(parent, parentBuilder, fieldDescriptor, parquetType);
   }
 
+  class ListWrapperConverter extends GroupConverter {
+    Converter[] myConverters = new Converter[100];
+    int myIndex = 0;
+
+    public ListWrapperConverter(final ParentValueContainer pvc, final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, final Type parquetType) {
+      if (fieldDescriptor.getJavaType() == JavaType.MESSAGE) {
+        Message.Builder subBuilder = parentBuilder.newBuilderForField(fieldDescriptor);
+        GroupType parquetSchema = parquetType.asGroupType().getType(0).asGroupType(); // skip "array"
+        myConverters[myIndex++] = new ProtoMessageConverter(pvc, subBuilder, parquetSchema);
+      } else {
+        myConverters[myIndex++] = new ProtoIntConverter(pvc); //TODO
+      }
+    }
+
+    @Override
+    public Converter getConverter(int fieldIndex) {
+      return myConverters[fieldIndex];
+    }
+
+    @Override
+    public void start() {
+    }
+
+    @Override
+    public void end() {
+    }
+  }
+
 
   private Converter newScalarConverter(final ParentValueContainer pvc, final Message.Builder parentBuilder, final Descriptors.FieldDescriptor fieldDescriptor, final Type parquetType) {
 
     JavaType javaType = fieldDescriptor.getJavaType();
 
     if (parquetType.getOriginalType() == OriginalType.LIST) {
-      return new GroupConverter() {
-        @Override
-        public Converter getConverter(int fieldIndex) {
-          Message.Builder subBuilder = parentBuilder.newBuilderForField(fieldDescriptor);
-          GroupType parquetSchema = parquetType.asGroupType().getType(0).asGroupType(); // skip "array"
-          return new ProtoMessageConverter(pvc, subBuilder, parquetSchema);
-        }
-
-        @Override
-        public void start() {
-          System.out.println(">>> START");
-        }
-
-        @Override
-        public void end() {
-          System.out.println(">>> END");
-        }
-      };
+      return new ListWrapperConverter(pvc, parentBuilder, fieldDescriptor, parquetType);
     }
 
     switch (javaType) {

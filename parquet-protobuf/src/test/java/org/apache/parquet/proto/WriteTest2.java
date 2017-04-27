@@ -38,7 +38,7 @@ public class WriteTest2 {
 
       ListOfList message = ListOfList.newBuilder()
         .setTopField("first_field")
-        .addFirstArray(ListOfListOuterClass.MyInnerMessage.newBuilder().addSecondArray(2))
+        .addFirstArray(ListOfListOuterClass.MyInnerMessage.newBuilder().setInnerField(1000).addSecondArray(2))
         .build();
 
       messages.add(message);
