@@ -51,20 +51,10 @@ public class ProtoMapSchemaConverterTest {
     String expectedSchema =
       "message TestProtobuf.Log {\n" +
         "  optional binary ip (UTF8) = 1;\n" +
-        "  optional binary timestamp (UTF8) = 2;\n" +
-        "  optional binary message (UTF8) = 3;\n" +
         "  required group additional (MAP) = 4 {\n" +
         "    repeated group map (MAP_KEY_VALUE) {\n" +
         "      required binary key (UTF8);\n" +
         "      required binary value (UTF8);\n" +
-        "    }\n" +
-        "  }\n" +
-        "  required group my_array (LIST) = 5 {\n" +
-        "    repeated binary array (UTF8);\n" +
-        "  }\n" +
-        "  required group my_array_of_messages (LIST) = 6 {\n" +
-        "    repeated group array {\n" +
-        "      optional int32 first_field = 1;\n" +
         "    }\n" +
         "  }\n" +
         "}\n";

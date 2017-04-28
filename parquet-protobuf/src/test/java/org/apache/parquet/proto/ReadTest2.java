@@ -20,39 +20,19 @@ package org.apache.parquet.proto;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetReader;
-import org.apache.parquet.proto.test.ListOfListOuterClass;
-import org.apache.parquet.proto.test.ListOfMessageOuterClass;
-import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleList;
-import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleListOrBuilder;
+import org.apache.parquet.proto.test.MapProtobuf;
 
 import java.io.IOException;
 
 public class ReadTest2 {
 
-  public static void main1(String[] args) throws IOException {
-
-    Path outputPath = new Path("/tmp/test24.parquet");
-
-    ParquetReader<SimpleList> reader = ProtoParquetReader.<SimpleList>builder(outputPath).build();
-    SimpleListOrBuilder log = reader.read();
-    System.out.println(log);
-  }
-
   public static void main(String[] args) throws IOException {
 
-    Path outputPath = new Path("/tmp/test23.parquet");
+    Path outputPath = new Path("/tmp/test.map.oldformat.parquet");
 
-    ParquetReader<ListOfListOuterClass.ListOfList> reader = ProtoParquetReader.<ListOfListOuterClass.ListOfList>builder(outputPath).build();
-    ListOfListOuterClass.ListOfListOrBuilder log = reader.read();
-    System.out.println(log);
-  }
-
-  public static void main2(String[] args) throws IOException {
-
-    Path outputPath = new Path("/tmp/test25.parquet");
-
-    ParquetReader<ListOfMessageOuterClass.ListOfMessage> reader = ProtoParquetReader.<ListOfMessageOuterClass.ListOfMessage>builder(outputPath).build();
+    ParquetReader<MapProtobuf.Log> reader = ProtoParquetReader.<MapProtobuf.Log>builder(outputPath).build();
     Object log = reader.read();
     System.out.println(log);
   }
+
 }

@@ -358,13 +358,12 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     final void writeRawValue(Object value) {
       recordConsumer.startField("map", 0); // This is the wrapper group for the map field
 
-      recordConsumer.startGroup();
       for(MapEntry<?, ?> entry : (Collection<MapEntry<?, ?>>) value) {
+        recordConsumer.startGroup();
         keyWriter.writeField(entry.getKey());
         valueWriter.writeField(entry.getValue());
+        recordConsumer.endGroup();
       }
-
-      recordConsumer.endGroup();
 
       recordConsumer.endField("map", 0);
     }

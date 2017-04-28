@@ -22,6 +22,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.proto.test.ListOfListOuterClass;
 import org.apache.parquet.proto.test.ListOfMessageOuterClass;
+import org.apache.parquet.proto.test.MapProtobuf;
 import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleList;
 import org.apache.parquet.proto.test.SimpleListOuterClass.SimpleListOrBuilder;
 
@@ -29,7 +30,7 @@ import java.io.IOException;
 
 public class ReadTest {
 
-  public static void main(String[] args) throws IOException {
+  public static void main1(String[] args) throws IOException {
 
     Path outputPath = new Path("/tmp/test24.parquet");
 
@@ -52,6 +53,15 @@ public class ReadTest {
     Path outputPath = new Path("/tmp/test25.parquet");
 
     ParquetReader<ListOfMessageOuterClass.ListOfMessage> reader = ProtoParquetReader.<ListOfMessageOuterClass.ListOfMessage>builder(outputPath).build();
+    Object log = reader.read();
+    System.out.println(log);
+  }
+
+  public static void main(String[] args) throws IOException {
+
+    Path outputPath = new Path("/tmp/test.map.parquet");
+
+    ParquetReader<MapProtobuf.Log> reader = ProtoParquetReader.<MapProtobuf.Log>builder(outputPath).build();
     Object log = reader.read();
     System.out.println(log);
   }

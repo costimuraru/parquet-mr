@@ -24,11 +24,7 @@ option java_package = "org.apache.parquet.proto.test";
 
 message Log {
     string ip = 1;
-    string timestamp = 2;
-    string message = 3;
     map<string, string> additional = 4;
-    repeated string my_array = 5;
-    repeated MySubMessage my_array_of_messages = 6;
 }
 
 message MySubMessage {
