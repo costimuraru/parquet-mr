@@ -34,9 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static org.apache.parquet.schema.OriginalType.ENUM;
 import static org.apache.parquet.schema.OriginalType.UTF8;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
 
 /**
  * <p/>
@@ -86,26 +84,22 @@ public class ProtoSchemaConverter {
 
     ParquetType parquetType = getParquetType(descriptor);
     if (descriptor.isRepeated()) {
-      return addRepeatedPrimitive(descriptor, parquetType.primitiveType, builder);
+      return addRepeatedPrimitive(descriptor, parquetType.primitiveType, parquetType.originalType, builder);
     }
 
     return builder.primitive(parquetType.primitiveType, getRepetition(descriptor)).as(parquetType.originalType);
   }
 
   private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addRepeatedPrimitive(Descriptors.FieldDescriptor descriptor,
-                                                                                                   PrimitiveTypeName primitiveType, final GroupBuilder<T> builder) {
+                                                                                                   PrimitiveTypeName primitiveType,
+                                                                                                   OriginalType originalType,
+                                                                                                   final GroupBuilder<T> builder) {
     GroupBuilder<GroupBuilder<T>> result = builder.group(Type.Repetition.REQUIRED).as(OriginalType.LIST);
 
-    if (primitiveType == BINARY) {
-      OriginalType originalType = descriptor.getJavaType() == JavaType.ENUM ? ENUM : UTF8;
-      return result
-        .primitive(primitiveType, Type.Repetition.REPEATED)
-        .as(originalType)
-        .named("array");
-    }
-
     return result
-      .primitive(primitiveType, Type.Repetition.REPEATED).named("array");
+      .primitive(primitiveType, Type.Repetition.REPEATED)
+      .as(originalType)
+      .named("array");
   }
 
   private <T> GroupBuilder<GroupBuilder<T>> addMessageField(Descriptors.FieldDescriptor descriptor, final GroupBuilder<T> builder) {
