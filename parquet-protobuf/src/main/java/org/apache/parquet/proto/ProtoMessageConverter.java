@@ -24,14 +24,18 @@ import com.google.protobuf.Message;
 import com.twitter.elephantbird.util.Protobufs;
 import org.apache.parquet.column.Dictionary;
 import org.apache.parquet.io.InvalidRecordException;
+import org.apache.parquet.io.ParquetDecodingException;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.Converter;
 import org.apache.parquet.io.api.GroupConverter;
 import org.apache.parquet.io.api.PrimitiveConverter;
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.IncompatibleSchemaModificationException;
+import org.apache.parquet.schema.OriginalType;
 import org.apache.parquet.schema.Type;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,9 +133,13 @@ class ProtoMessageConverter extends GroupConverter {
       };
     }
 
-    return newScalarConverter(parent, parentBuilder, fieldDescriptor, parquetType);
+    OriginalType originalType = parquetType.getOriginalType() == null ? OriginalType.UTF8 : parquetType.getOriginalType();
+    switch (originalType) {
+      case LIST:
+      case MAP: return new WrapperConverter(parentBuilder, fieldDescriptor, parquetType);
+      default: return newScalarConverter(parent, parentBuilder, fieldDescriptor, parquetType);
+    }
   }
-
 
   private Converter newScalarConverter(ParentValueContainer pvc, Message.Builder parentBuilder, Descriptors.FieldDescriptor fieldDescriptor, Type parquetType) {
 
@@ -344,5 +352,59 @@ class ProtoMessageConverter extends GroupConverter {
       parent.add(str);
     }
 
+  }
+
+  /**
+   * This class unwraps the additional LIST/MAP wrapper and makes it possible to read the underlying data and then convert
+   * it to protobuf.
+   *
+   * Consider the following protobuf schema:
+   * message SimpleList {
+   *   repeated int64 first_array = 1;
+   * }
+   *
+   * A LIST wrapper is created in parquet for the above mentioned protobuf schema:
+   * message SimpleList {
+   *   required group first_array (LIST) = 1 {
+   *     repeated int32 array;
+   *   }
+   * }
+   *
+   * Similar for maps.
+   *
+   * The LIST/MAP wrappers are used by 3rd party tools, such as Hive, to read parquet arrays/maps. The wrapper contains
+   * one only one field: either a primitive field (like in the example above, where we have an array of ints) or
+   * another group (array of messages / map of messages).
+   */
+  final class WrapperConverter extends GroupConverter {
+    private final Collection<OriginalType> SUPPORTED_WRAPPED_TYPES = Arrays.asList(OriginalType.LIST, OriginalType.MAP);
+    private final Converter converter;
+
+    public WrapperConverter(Message.Builder parentBuilder, Descriptors.FieldDescriptor fieldDescriptor, Type parquetType) {
+      OriginalType originalType = parquetType.getOriginalType();
+      if (!SUPPORTED_WRAPPED_TYPES.contains(originalType)) {
+        throw new ParquetDecodingException("Expected " + SUPPORTED_WRAPPED_TYPES + " wrappers. Found: " + originalType + " instead.");
+      }
+
+      Type parquetSchema = parquetType.asGroupType().getType(0); // unwrap LIST or MAP
+      converter = newMessageConverter(parentBuilder, fieldDescriptor, parquetSchema);
+    }
+
+    @Override
+    public Converter getConverter(int fieldIndex) {
+      if (fieldIndex > 0) {
+        throw new ParquetDecodingException("Unexpected multiple fields in the " + SUPPORTED_WRAPPED_TYPES + " wrapper");
+      }
+
+      return converter;
+    }
+
+    @Override
+    public void start() {
+    }
+
+    @Override
+    public void end() {
+    }
   }
 }
