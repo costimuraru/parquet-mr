@@ -161,17 +161,10 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
         }
 
         writer.setFieldName(name);
-        writer.setIndex(getFieldIndex(schema, name));
+        writer.setIndex(schema.getFieldIndex(name));
 
         fieldWriters[fieldDescriptor.getIndex()] = writer;
       }
-    }
-
-    private int getFieldIndex(GroupType schema, String name) {
-      if (schema.getFieldCount() > 0 && schema.getFields().get(0).getOriginalType() == OriginalType.MAP_KEY_VALUE) {
-        return schema.getFields().get(0).asGroupType().getFieldIndex(name);
-      }
-      return schema.getFieldIndex(name);
     }
 
     private FieldWriter createWriter(Descriptors.FieldDescriptor fieldDescriptor, Type type) {
