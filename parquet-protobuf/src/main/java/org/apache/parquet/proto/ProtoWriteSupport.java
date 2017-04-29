@@ -169,9 +169,6 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     private FieldWriter createWriter(Descriptors.FieldDescriptor fieldDescriptor, Type type) {
 
-      if (fieldDescriptor.getJavaType() == Descriptors.FieldDescriptor.JavaType.MESSAGE) {
-        createMessageWriter(fieldDescriptor, type);
-      }
       switch (fieldDescriptor.getJavaType()) {
         case STRING: return new StringWriter() ;
         case MESSAGE: return createMessageWriter(fieldDescriptor, type);
