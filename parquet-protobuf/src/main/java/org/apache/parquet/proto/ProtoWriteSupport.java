@@ -191,9 +191,10 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       } else if (fieldDescriptor.isRepeated()) {
         GroupType groupType = type.asGroupType();
         if (groupType.getOriginalType() == OriginalType.LIST) {
-          GroupType actualListType = groupType.getType(0).asGroupType();
-          return new MessageWriter(fieldDescriptor.getMessageType(), actualListType);
+          groupType = groupType.getType(0).asGroupType();
         }
+        
+        return new MessageWriter(fieldDescriptor.getMessageType(), groupType);
       }
 
       return new MessageWriter(fieldDescriptor.getMessageType(), type.asGroupType());
