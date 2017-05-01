@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -21,6 +21,14 @@ package org.apache.parquet.proto;
 import com.google.protobuf.Message;
 import com.google.protobuf.MessageOrBuilder;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.column.ColumnDescriptor;
+import org.apache.parquet.column.ParquetProperties;
+import org.apache.parquet.column.values.ValuesWriter;
+import org.apache.parquet.column.values.factory.DefaultV2ValuesWriterFactory;
+import org.apache.parquet.column.values.factory.DefaultValuesWriterFactory;
+import org.apache.parquet.column.values.factory.ValuesWriterFactory;
+import org.apache.parquet.column.values.fallback.FallbackValuesWriter;
+import org.apache.parquet.hadoop.ParquetWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -173,8 +181,24 @@ public class TestUtils {
   public static Path writeMessages(Class<? extends Message> cls, MessageOrBuilder... records) throws IOException {
     Path file = someTemporaryFilePath();
 
-    ProtoParquetWriter<MessageOrBuilder> writer =
-            new ProtoParquetWriter<MessageOrBuilder>(file, cls);
+    ParquetWriter<MessageOrBuilder> writer = ProtoParquetWriter
+      .builder(file)
+      .withProtobufClass(cls)
+      .withValuesWriterVersion(new ValuesWriterFactory() {
+        private final DefaultValuesWriterFactory defaultWriterFactory = new DefaultValuesWriterFactory();
+
+        @Override
+        public void initialize(ParquetProperties parquetProperties) {
+          defaultWriterFactory.initialize(parquetProperties);
+        }
+
+        @Override
+        public ValuesWriter newValuesWriter(ColumnDescriptor descriptor) {
+          System.out.println((defaultWriterFactory.newValuesWriter(descriptor)).getEncoding());
+          return defaultWriterFactory.newValuesWriter(descriptor);
+        }
+      })
+      .build();
 
     for (MessageOrBuilder record : records) {
       writer.write(record);

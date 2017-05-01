@@ -20,6 +20,10 @@ package org.apache.parquet.proto;
 
 import com.google.protobuf.Message;
 import com.google.protobuf.MessageOrBuilder;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.specific.SpecificData;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.api.WriteSupport;
@@ -31,6 +35,10 @@ import java.io.IOException;
  * Write Protobuf records to a Parquet file.
  */
 public class ProtoParquetWriter<T extends MessageOrBuilder> extends ParquetWriter<T> {
+
+  public static <T extends MessageOrBuilder> Builder<T> builder(Path file) {
+    return new Builder<T>(file);
+  }
 
   /**
    * Create a new {@link ProtoParquetWriter}.
@@ -78,4 +86,26 @@ public class ProtoParquetWriter<T extends MessageOrBuilder> extends ParquetWrite
             DEFAULT_BLOCK_SIZE, DEFAULT_PAGE_SIZE);
   }
 
+  public static class Builder<T extends MessageOrBuilder> extends ParquetWriter.Builder<T, Builder<T>> {
+    private Class<? extends Message> message;
+
+    private Builder(Path file) {
+      super(file);
+    }
+
+    public Builder<T> withProtobufClass(Class<? extends Message> message) {
+      this.message = message;
+      return this;
+    }
+
+    @Override
+    protected Builder<T> self() {
+      return this;
+    }
+
+    @Override
+    protected WriteSupport<T> getWriteSupport(Configuration conf) {
+      return new ProtoWriteSupport<>(message);
+    }
+  }
 }
