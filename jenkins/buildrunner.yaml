@@ -1,0 +1,13 @@
+steps:
+  parquet-build:
+    # path to the Dockerfile relative to the root of the git repo
+    build: jenkins
+    run:
+      # /source is always the path to the root of the git repo
+      cwd: /source
+      files:
+        gradle.home: "/root/.gradle:rw"
+        maven.home: "/root/.m2:rw"
+      cmd: |
+         mvn deploy -pl parquet-protobuf -am -Drat.skip=true
+      artifacts:
