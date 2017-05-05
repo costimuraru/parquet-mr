@@ -357,8 +357,9 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     @Override
     final void writeRawValue(Object value) {
-      recordConsumer.startField("map", 0); // This is the wrapper group for the map field
+      recordConsumer.startGroup();
 
+      recordConsumer.startField("map", 0); // This is the wrapper group for the map field
       for(MapEntry<?, ?> entry : (Collection<MapEntry<?, ?>>) value) {
         recordConsumer.startGroup();
         keyWriter.writeField(entry.getKey());
@@ -367,6 +368,8 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       }
 
       recordConsumer.endField("map", 0);
+
+      recordConsumer.endGroup();
     }
   }
 
