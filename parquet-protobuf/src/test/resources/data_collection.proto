@@ -1,0 +1,22 @@
+syntax = "proto3";
+package com.adobe.aam.proto.v3;
+
+import "src/test/resources/aam_common.proto";
+
+message DataCollectionMessage {
+    // identifies the message generator (DCS, Inbound, Algo)
+    Source source = 1;
+}
+
+message Source {
+    enum Component {
+        UNKNOWN = 0;
+        DCS = 1;
+        INBOUND = 2;
+        ALGO = 3;
+    }
+
+    Component component = 1;
+    string caller = 2;
+}
+

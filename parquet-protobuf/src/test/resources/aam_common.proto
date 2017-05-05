@@ -1,0 +1,53 @@
+syntax = "proto3";
+package com.adobe.aam.proto.v3;
+
+message Id {
+    int32 namespace = 1;
+    string id = 2;
+    string authentication_state = 3;
+    Type type = 4;
+
+    enum Type {
+        UNKNOWN = 0;
+        INTERNAL = 1;               // for AAM, AAM obfuscated and MCID
+        COOKIE = 2;                 // customer cookie IDs
+        CROSS_DEVICE = 3;           // customer CRM IDs
+        DEVICE_ADVERTISING_ID = 4;  // GAID, IDFA and other mobile data sources
+    }
+}
+
+message Segment {
+    int32 id = 1;
+    int32 legacy_id = 2;
+    Timestamps timestamp = 3;
+
+    enum Status {
+        UNKNOWN = 0;
+        NEW = 1;
+        REACQUIRED = 2;
+        DELETED = 3;
+    }
+    Status status = 4;
+}
+
+message Trait {
+    int32 id = 1;
+    repeated Frequency frequencies = 2;
+}
+
+message Frequency {
+    int32 day = 1;
+    int32 realizations = 2;
+}
+
+message Timestamps {
+    int64 business_timestamp = 1;
+    int64 processed_timestamp = 2;
+}
+
+message Partner {
+    int32 partner_id = 1;
+    int32 domain_id = 2;
+    int32 container_id = 3;
+    string subdomain = 4;
+}

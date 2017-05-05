@@ -172,8 +172,8 @@ public class Main {
       @Override
       public void close() throws IOException {}
     });
-    System.setOut(VoidStream);
-    System.setErr(VoidStream);
+//    System.setOut(VoidStream);
+//    System.setErr(VoidStream);
 
     if (args.length == 0) {
       die("No command specified", true, null, null);
@@ -216,7 +216,6 @@ public class Main {
       if (debug) ex.printStackTrace(Main.err);
       die("Invalid arguments: " + ex.getMessage(), true, name, command);
     } catch (Throwable th) {
-      th.printStackTrace();
       if (debug) th.printStackTrace(Main.err);
       die(th, false, name, command);
     }
