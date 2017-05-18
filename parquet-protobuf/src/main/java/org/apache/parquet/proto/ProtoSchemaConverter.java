@@ -18,31 +18,25 @@
  */
 package org.apache.parquet.proto;
 
-import static org.apache.parquet.schema.OriginalType.ENUM;
-import static org.apache.parquet.schema.OriginalType.UTF8;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BOOLEAN;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.FLOAT;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32;
-import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64;
-
-import java.util.List;
-
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
-import org.apache.parquet.schema.Types;
-import org.apache.parquet.schema.OriginalType;
-import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
-import org.apache.parquet.schema.Types.Builder;
-import org.apache.parquet.schema.Types.GroupBuilder;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
 import com.google.protobuf.Message;
 import com.twitter.elephantbird.util.Protobufs;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.OriginalType;
+import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
+import org.apache.parquet.schema.Type;
+import org.apache.parquet.schema.Types;
+import org.apache.parquet.schema.Types.Builder;
+import org.apache.parquet.schema.Types.GroupBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+
+import static org.apache.parquet.schema.OriginalType.ENUM;
+import static org.apache.parquet.schema.OriginalType.UTF8;
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.*;
 
 /**
  * <p/>
@@ -102,12 +96,23 @@ public class ProtoSchemaConverter {
                                                                                                    PrimitiveTypeName primitiveType,
                                                                                                    OriginalType originalType,
                                                                                                    final GroupBuilder<T> builder) {
-    GroupBuilder<GroupBuilder<T>> result = builder.group(Type.Repetition.REQUIRED).as(OriginalType.LIST);
+    return builder
+        .group(Type.Repetition.REQUIRED).as(OriginalType.LIST)
+          .group(Type.Repetition.REPEATED)
+            .primitive(primitiveType, Type.Repetition.OPTIONAL).as(originalType)
+          .named("element")
+        .named("list");
+  }
 
-    return result
-      .primitive(primitiveType, Type.Repetition.REPEATED)
-      .as(originalType)
-      .named("array");
+  private <T> GroupBuilder<GroupBuilder<T>> addRepeatedMessage(Descriptors.FieldDescriptor descriptor, GroupBuilder<T> builder) {
+    GroupBuilder<GroupBuilder<GroupBuilder<T>>> result =
+      builder
+        .group(Type.Repetition.REQUIRED).as(OriginalType.LIST)
+        .group(Type.Repetition.REPEATED);
+
+    convertFields(result, descriptor.getMessageType().getFields());
+
+    return result.named("list");
   }
 
   private <T> GroupBuilder<GroupBuilder<T>> addMessageField(Descriptors.FieldDescriptor descriptor, final GroupBuilder<T> builder) {
@@ -138,17 +143,6 @@ public class ProtoSchemaConverter {
 
     return addField(fields.get(1), group).named("value")
       .named("map");
-  }
-
-  private <T> GroupBuilder<GroupBuilder<T>> addRepeatedMessage(Descriptors.FieldDescriptor descriptor, GroupBuilder<T> builder) {
-    GroupBuilder<GroupBuilder<GroupBuilder<T>>> result =
-      builder
-        .group(Type.Repetition.REQUIRED).as(OriginalType.LIST)
-        .group(Type.Repetition.REPEATED);
-
-    convertFields(result, descriptor.getMessageType().getFields());
-
-    return result.named("array");
   }
 
   private ParquetType getParquetType(Descriptors.FieldDescriptor fieldDescriptor) {

@@ -123,19 +123,21 @@ public class ProtoSchemaConverterTest {
         "  optional int32 optionalPrimitive = 1;\n" +
         "  required int32 requiredPrimitive = 2;\n" +
         "  required group repeatedPrimitive (LIST) = 3 {\n" +
-        "    repeated int32 array;\n" +
+        "    repeated group list {\n" +
+        "      optional int32 element;\n" +
+        "    }\n" +
         "  }\n" +
         "  optional group optionalMessage = 7 {\n" +
         "    optional int32 someId = 3;\n" +
         "  }\n" +
         "  required group requiredMessage = 8 {\n" +
-        "    optional int32 someId = 3;\n" +
+        "    optional int32 someId= 3;\n" +
         "  }\n" +
         "  required group repeatedMessage (LIST) = 9 {\n" +
-        "    repeated group array {\n" +
+        "    repeated group list {\n" +
         "      optional int32 someId = 3;\n" +
         "    }\n" +
-        "  }\n" +
+        "  }" +
         "}";
 
     testConversion(TestProtobuf.SchemaConverterRepetition.class, expectedSchema);
@@ -147,13 +149,15 @@ public class ProtoSchemaConverterTest {
       "message TestProto3.SchemaConverterRepetition {\n" +
         "  optional int32 optionalPrimitive = 1;\n" +
         "  required group repeatedPrimitive (LIST) = 3 {\n" +
-        "    repeated int32 array;\n" +
+        "    repeated group list {\n" +
+        "      optional int32 element;\n" +
+        "    }\n" +
         "  }\n" +
         "  optional group optionalMessage = 7 {\n" +
         "    optional int32 someId = 3;\n" +
         "  }\n" +
         "  required group repeatedMessage (LIST) = 9 {\n" +
-        "    repeated group array {\n" +
+        "    repeated group list {\n" +
         "      optional int32 someId = 3;\n" +
         "    }\n" +
         "  }\n" +
