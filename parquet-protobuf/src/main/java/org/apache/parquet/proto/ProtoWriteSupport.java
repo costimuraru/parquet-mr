@@ -203,7 +203,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     private GroupType getGroupType(Type type) {
       if (type.getOriginalType() == OriginalType.LIST) {
-        return type.asGroupType().getType("array").asGroupType();
+        return type.asGroupType().getType("list").asGroupType();
       }
 
       if (type.getOriginalType() == OriginalType.MAP) {
@@ -242,9 +242,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     /** Writes message as part of repeated field. It cannot start field*/
     @Override
     final void writeRawValue(Object value) {
-      recordConsumer.startGroup();
       writeAllFields((MessageOrBuilder) value);
-      recordConsumer.endGroup();
     }
 
     /** Used for writing nonrepeated (optional, required) fields*/
@@ -294,15 +292,27 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       recordConsumer.startGroup();
       List<?> list = (List<?>) value;
 
-      recordConsumer.startField("array", 0); // This is the wrapper group for the array field
+      recordConsumer.startField("list", 0); // This is the wrapper group for the array field
       for (Object listEntry: list) {
+        recordConsumer.startGroup();
+        if (isPrimitive(listEntry)) {
+          recordConsumer.startField("element", 0);
+        }
         fieldWriter.writeRawValue(listEntry);
+        if (isPrimitive(listEntry)) {
+          recordConsumer.endField("element", 0);
+        }
+        recordConsumer.endGroup();
       }
-      recordConsumer.endField("array", 0);
+      recordConsumer.endField("list", 0);
 
       recordConsumer.endGroup();
       recordConsumer.endField(fieldName, index);
     }
+  }
+
+  private boolean isPrimitive(Object listEntry) {
+    return !(listEntry instanceof Message);
   }
 
   /** validates mapping between protobuffer fields and parquet fields.*/
