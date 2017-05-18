@@ -99,7 +99,7 @@ public class ProtoSchemaConverter {
     return builder
         .group(Type.Repetition.REQUIRED).as(OriginalType.LIST)
           .group(Type.Repetition.REPEATED)
-            .primitive(primitiveType, Type.Repetition.OPTIONAL).as(originalType)
+            .primitive(primitiveType, Type.Repetition.REQUIRED).as(originalType)
           .named("element")
         .named("list");
   }
