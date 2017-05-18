@@ -124,7 +124,7 @@ public class ProtoSchemaConverterTest {
         "  required int32 requiredPrimitive = 2;\n" +
         "  required group repeatedPrimitive (LIST) = 3 {\n" +
         "    repeated group list {\n" +
-        "      optional int32 element;\n" +
+        "      required int32 element;\n" +
         "    }\n" +
         "  }\n" +
         "  optional group optionalMessage = 7 {\n" +
@@ -150,7 +150,7 @@ public class ProtoSchemaConverterTest {
         "  optional int32 optionalPrimitive = 1;\n" +
         "  required group repeatedPrimitive (LIST) = 3 {\n" +
         "    repeated group list {\n" +
-        "      optional int32 element;\n" +
+        "      required int32 element;\n" +
         "    }\n" +
         "  }\n" +
         "  optional group optionalMessage = 7 {\n" +
