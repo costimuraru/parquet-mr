@@ -103,8 +103,8 @@ public class ProtoSchemaConverterTest {
         "  optional binary optionalEnum (ENUM) = 18;" +
         "  optional int32 someInt32 = 19;" +
         "  optional binary someString (UTF8) = 20;" +
-        "  repeated group optionalMap (MAP) = 21 {\n" +
-        "    repeated group map (MAP_KEY_VALUE) {\n" +
+        "  required group optionalMap (MAP) = 21 {\n" +
+        "    repeated group key_value {\n" +
         "      required int64 key;\n" +
         "      optional group value {\n" +
         "        optional int32 someId = 3;\n" +

@@ -447,8 +447,8 @@ class ProtoMessageConverter extends GroupConverter {
       }
 
       Type parquetSchema;
-      if (parquetType.asGroupType().containsField("map")){
-        parquetSchema = parquetType.asGroupType().getType("map");
+      if (parquetType.asGroupType().containsField("key_value")){
+        parquetSchema = parquetType.asGroupType().getType("key_value");
       } else {
         throw new ParquetDecodingException("Expected map but got: " + parquetType);
       }
