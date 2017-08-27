@@ -137,12 +137,12 @@ public class ProtoSchemaConverter {
     ParquetType mapKeyParquetType = getParquetType(fields.get(0));
 
     GroupBuilder<GroupBuilder<GroupBuilder<T>>> group = builder
-      .group(getRepetition(descriptor)).as(OriginalType.MAP)
-      .group(Type.Repetition.REPEATED).as(OriginalType.MAP_KEY_VALUE)
+      .group(Type.Repetition.REQUIRED).as(OriginalType.MAP)
+      .group(Type.Repetition.REPEATED) // key_value wrapper
       .primitive(mapKeyParquetType.primitiveType, Type.Repetition.REQUIRED).as(mapKeyParquetType.originalType).named("key");
 
     return addField(fields.get(1), group).named("value")
-      .named("map");
+      .named("key_value");
   }
 
   private ParquetType getParquetType(Descriptors.FieldDescriptor fieldDescriptor) {

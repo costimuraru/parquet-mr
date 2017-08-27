@@ -207,7 +207,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       }
 
       if (type.getOriginalType() == OriginalType.MAP) {
-        return type.asGroupType().getType("map").asGroupType().getType("value").asGroupType();
+        return type.asGroupType().getType("key_value").asGroupType().getType("value").asGroupType();
       }
 
       return type.asGroupType();
@@ -369,7 +369,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     final void writeRawValue(Object value) {
       recordConsumer.startGroup();
 
-      recordConsumer.startField("map", 0); // This is the wrapper group for the map field
+      recordConsumer.startField("key_value", 0); // This is the wrapper group for the map field
       for(MapEntry<?, ?> entry : (Collection<MapEntry<?, ?>>) value) {
         recordConsumer.startGroup();
         keyWriter.writeField(entry.getKey());
@@ -377,7 +377,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
         recordConsumer.endGroup();
       }
 
-      recordConsumer.endField("map", 0);
+      recordConsumer.endField("key_value", 0);
 
       recordConsumer.endGroup();
     }
