@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.Path;
 
 import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.column.ParquetProperties.WriterVersion;
+import org.apache.parquet.column.values.factory.ValuesWriterFactory;
 import org.apache.parquet.hadoop.api.WriteSupport;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.schema.MessageType;
@@ -481,6 +482,15 @@ public class ParquetWriter<T> implements Closeable {
      */
     public SELF withWriterVersion(WriterVersion version) {
       encodingPropsBuilder.withWriterVersion(version);
+      return self();
+    }
+
+    /**
+     * @param factory a {@code ValuesWriterFactory}
+     * @return this builder for method chaining.
+     */
+    public SELF withValuesWriterVersion(ValuesWriterFactory factory) {
+      encodingPropsBuilder.withValuesWriterFactory(factory);
       return self();
     }
 
