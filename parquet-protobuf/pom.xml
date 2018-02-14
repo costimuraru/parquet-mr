@@ -79,6 +79,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.parquet</groupId>
+      <artifactId>parquet-tools</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j.version}</version>
@@ -159,7 +165,7 @@
                 <mkdir dir="${project.build.directory}/generated-test-sources/java" />
                 <exec failonerror="true" executable="${protoc.path}">
                   <arg value="--java_out=${project.build.directory}/generated-test-sources/java" />
-                  <arg value="src/test/resources/TestProtobuf.proto" />
+                  <arg value="src/test/resources/TestProto2.proto" />
                   <arg value="src/test/resources/TestProto3.proto" />
                   <arg value="-I." />
                 </exec>

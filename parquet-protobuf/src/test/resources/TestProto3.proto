@@ -79,6 +79,8 @@ message SchemaConverterAllDatatypes {
         string someString = 20;
     }
     map<int64, SchemaConverterSimpleMessage> optionalMap = 21;
+    string emptyString = 22;
+    repeated SchemaConverterSimpleMessage emptyMessageArray = 23;
 }
 
 message SchemaConverterRepetition {

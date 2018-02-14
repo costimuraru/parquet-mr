@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -21,6 +21,11 @@ package org.apache.parquet.proto;
 import com.google.protobuf.*;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
+import com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
+import com.google.protobuf.Descriptors.OneofDescriptor;
+import com.google.protobuf.Message;
+import com.google.protobuf.MessageOrBuilder;
+import com.google.protobuf.TextFormat;
 import com.twitter.elephantbird.util.Protobufs;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.hadoop.BadConfigurationException;
@@ -48,15 +53,18 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
   private static final Logger LOG = LoggerFactory.getLogger(ProtoWriteSupport.class);
   public static final String PB_CLASS_WRITE = "parquet.proto.writeClass";
 
+  private final boolean includeDefaultValues;
   private RecordConsumer recordConsumer;
   private Class<? extends Message> protoMessage;
   private MessageWriter messageWriter;
 
   public ProtoWriteSupport() {
+    this(null, true);
   }
 
-  public ProtoWriteSupport(Class<? extends Message> protobufClass) {
+  public ProtoWriteSupport(Class<? extends Message> protobufClass, final boolean includeDefaultValues) {
     this.protoMessage = protobufClass;
+    this.includeDefaultValues = includeDefaultValues;
   }
 
   @Override
@@ -136,11 +144,17 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
 
     }
 
+    boolean shouldWrite(Object value) {
+       return true;
+    }
+
     /** Used for writing nonrepeated (optional, required) fields*/
     void writeField(Object value) {
-      recordConsumer.startField(fieldName, index);
-      writeRawValue(value);
-      recordConsumer.endField(fieldName, index);
+      if (shouldWrite(value)) {
+        recordConsumer.startField(fieldName, index);
+        writeRawValue(value);
+        recordConsumer.endField(fieldName, index);
+      }
     }
   }
 
@@ -249,6 +263,49 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     }
 
     private void writeAllFields(MessageOrBuilder pb) {
+      if (includeDefaultValues) {
+        writeAllFieldsIncludingDefaults(pb);
+      } else {
+        writeAllDifferentFields(pb);
+      }
+    }
+
+    private void writeAllFieldsIncludingDefaults(final MessageOrBuilder pb) {
+      for (FieldDescriptor fieldDescriptor : pb.getDescriptorForType().getFields()) {
+        if (fieldDescriptor.getContainingOneof() != null) {
+          continue;
+        }
+        if (fieldDescriptor.isExtension()) {
+          // Field index of an extension field might overlap with a base field.
+          throw new UnsupportedOperationException("Cannot convert Protobuf message with extension field(s)");
+        }
+
+        // We only write message fields if they have a value in order to keep the transformation reversible
+        if (fieldDescriptor.getJavaType() != JavaType.MESSAGE
+          || fieldDescriptor.isRepeated()
+          || pb.hasField(fieldDescriptor)
+          ) {
+          setField(pb, fieldDescriptor);
+        }
+      }
+
+      // We only write a one of field if it has been set in order to keep the transformation reversible
+      // (i.e. we don't automatically set default values for fields inside one ofs)
+      for (OneofDescriptor oneofDescriptor : pb.getDescriptorForType().getOneofs()) {
+        if (pb.hasOneof(oneofDescriptor)) {
+          final FieldDescriptor fieldDescriptor = pb.getOneofFieldDescriptor(oneofDescriptor);
+          setField(pb, fieldDescriptor);
+        }
+      }
+    }
+
+    private void setField(final MessageOrBuilder pb, final FieldDescriptor fieldDescriptor) {
+      int fieldIndex = fieldDescriptor.getIndex();
+      final Object fieldValue = pb.getField(fieldDescriptor);
+      fieldWriters[fieldIndex].writeField(fieldValue);
+    }
+
+    private void writeAllDifferentFields(final MessageOrBuilder pb) {
       //returns changed fields with values. Map is ordered by id.
       Map<FieldDescriptor, Object> changedPbFields = pb.getAllFields();
 
@@ -280,7 +337,17 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     }
 
     @Override
+    boolean shouldWrite(Object value) {
+      // Empty fields should be omitted
+      return !((List<?>) value).isEmpty();
+    }
+
+    @Override
     final void writeField(Object value) {
+      if (!shouldWrite(value)) {
+        return;
+      }
+
       recordConsumer.startField(fieldName, index);
       recordConsumer.startGroup();
       List<?> list = (List<?>) value;
@@ -364,6 +431,12 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       super();
       this.keyWriter = keyWriter;
       this.valueWriter = valueWriter;
+    }
+
+    @Override
+    boolean shouldWrite(Object value) {
+      // Empty fields should be omitted
+      return !((Collection<Message>) value).isEmpty();
     }
 
     @Override

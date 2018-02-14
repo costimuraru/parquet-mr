@@ -21,9 +21,7 @@ package org.apache.parquet.proto;
 import com.google.protobuf.Message;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.proto.test.TestProto3;
-import org.apache.parquet.proto.test.TestProtobuf;
-import org.apache.parquet.proto.test.TestProtobuf.FirstCustomClassMessage;
-import org.apache.parquet.proto.test.TestProtobuf.SecondCustomClassMessage;
+import org.apache.parquet.proto.test.TestProto2;
 import org.apache.parquet.proto.utils.ReadUsingMR;
 import org.apache.parquet.proto.utils.WriteUsingMR;
 import org.junit.Test;
@@ -40,10 +38,10 @@ public class ProtoInputOutputFormatTest {
    * second job and compares input and output.
    */
   @Test
-  public void testInputOutput() throws Exception {
-    TestProtobuf.IOFormatMessage input;
+  public void testProto2InputOutput() throws Exception {
+    TestProto2.IOFormatMessage input;
     {
-      TestProtobuf.IOFormatMessage.Builder msg = TestProtobuf.IOFormatMessage.newBuilder();
+      TestProto2.IOFormatMessage.Builder msg = TestProto2.IOFormatMessage.newBuilder();
       msg.setOptionalDouble(666);
       msg.addRepeatedString("Msg1");
       msg.addRepeatedString("Msg2");
@@ -54,7 +52,7 @@ public class ProtoInputOutputFormatTest {
     List<Message> result = runMRJobs(input);
 
     assertEquals(1, result.size());
-    TestProtobuf.IOFormatMessage output = (TestProtobuf.IOFormatMessage) result.get(0);
+    TestProto2.IOFormatMessage output = (TestProto2.IOFormatMessage) result.get(0);
 
     assertEquals(666, output.getOptionalDouble(), 0.00001);
     assertEquals(323, output.getMsg().getSomeId());
@@ -95,9 +93,9 @@ public class ProtoInputOutputFormatTest {
    * Only requested data should be read.
    * */
   @Test
-  public void testProjection() throws Exception {
+  public void testProto2Projection() throws Exception {
 
-    TestProtobuf.Document.Builder writtenDocument = TestProtobuf.Document.newBuilder();
+    TestProto2.Document.Builder writtenDocument = TestProto2.Document.newBuilder();
     writtenDocument.setDocId(12345);
     writtenDocument.addNameBuilder().setUrl("http://goout.cz/");
 
@@ -109,7 +107,7 @@ public class ProtoInputOutputFormatTest {
     String projection = "message Document {required int64 DocId; }";
     reader.setRequestedProjection(projection);
     List<Message> output = reader.read(outputPath);
-    TestProtobuf.Document readDocument = (TestProtobuf.Document) output.get(0);
+    TestProto2.Document readDocument = (TestProto2.Document) output.get(0);
 
 
     //test that only requested fields were deserialized
@@ -146,26 +144,26 @@ public class ProtoInputOutputFormatTest {
    * It should replace class specified in header.
    * */
   @Test
-  public void testCustomProtoClass() throws Exception {
-    FirstCustomClassMessage.Builder inputMessage;
-    inputMessage = FirstCustomClassMessage.newBuilder();
+  public void testProto2CustomProtoClass() throws Exception {
+    TestProto2.FirstCustomClassMessage.Builder inputMessage;
+    inputMessage = TestProto2.FirstCustomClassMessage.newBuilder();
     inputMessage.setString("writtenString");
 
     Path outputPath = new WriteUsingMR().write(new Message[]{inputMessage.build()});
     ReadUsingMR readUsingMR = new ReadUsingMR();
-    String customClass = SecondCustomClassMessage.class.getName();
+    String customClass = TestProto2.SecondCustomClassMessage.class.getName();
     ProtoReadSupport.setProtobufClass(readUsingMR.getConfiguration(), customClass);
     List<Message> result = readUsingMR.read(outputPath);
 
     assertEquals(1, result.size());
     Message msg = result.get(0);
     assertFalse("Class from header returned.",
-            msg instanceof FirstCustomClassMessage);
+            msg instanceof TestProto2.FirstCustomClassMessage);
     assertTrue("Custom class was not used",
-            msg instanceof SecondCustomClassMessage);
+            msg instanceof TestProto2.SecondCustomClassMessage);
 
     String stringValue;
-    stringValue = ((SecondCustomClassMessage) msg).getString();
+    stringValue = ((TestProto2.SecondCustomClassMessage) msg).getString();
     assertEquals("writtenString", stringValue);
   }
 

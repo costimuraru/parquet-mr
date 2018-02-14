@@ -21,7 +21,7 @@ package org.apache.parquet.proto;
 import com.google.protobuf.Message;
 import org.junit.Test;
 import org.apache.parquet.proto.test.TestProto3;
-import org.apache.parquet.proto.test.TestProtobuf;
+import org.apache.parquet.proto.test.TestProto2;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.MessageTypeParser;
 
@@ -45,9 +45,9 @@ public class ProtoSchemaConverterTest {
    * Tests that all protocol buffer datatypes are converted to correct parquet datatypes.
    */
   @Test
-  public void testConvertAllDatatypes() throws Exception {
+  public void testProto2ConvertAllDatatypes() throws Exception {
     String expectedSchema =
-      "message TestProtobuf.SchemaConverterAllDatatypes {\n" +
+      "message TestProto2.SchemaConverterAllDatatypes {\n" +
       "  optional double optionalDouble = 1;\n" +
       "  optional float optionalFloat = 2;\n" +
       "  optional int32 optionalInt32 = 3;\n" +
@@ -72,7 +72,7 @@ public class ProtoSchemaConverterTest {
       " optional binary optionalEnum (ENUM)  = 18;" +
       "}";
 
-    testConversion(TestProtobuf.SchemaConverterAllDatatypes.class, expectedSchema);
+    testConversion(TestProto2.SchemaConverterAllDatatypes.class, expectedSchema);
   }
 
   /**
@@ -111,15 +111,23 @@ public class ProtoSchemaConverterTest {
         "      }\n" +
         "    }\n" +
         "  }\n" +
+        "  optional binary emptyString (UTF8) = 22;\n" +
+        "  required group emptyMessageArray (LIST) = 23 {\n" +
+        "    repeated group list {\n" +
+        "      optional group element {\n" +
+        "        optional int32 someId = 3;\n" +
+        "      }\n" +
+        "    }\n" +
+        "  }\n" +
         "}";
 
     testConversion(TestProto3.SchemaConverterAllDatatypes.class, expectedSchema);
   }
 
   @Test
-  public void testConvertRepetition() throws Exception {
+  public void testProto2ConvertRepetition() throws Exception {
     String expectedSchema =
-      "message TestProtobuf.SchemaConverterRepetition {\n" +
+      "message TestProto2.SchemaConverterRepetition {\n" +
         "  optional int32 optionalPrimitive = 1;\n" +
         "  required int32 requiredPrimitive = 2;\n" +
         "  required group repeatedPrimitive (LIST) = 3 {\n" +
@@ -142,7 +150,7 @@ public class ProtoSchemaConverterTest {
         "  }" +
         "}";
 
-    testConversion(TestProtobuf.SchemaConverterRepetition.class, expectedSchema);
+    testConversion(TestProto2.SchemaConverterRepetition.class, expectedSchema);
   }
 
   @Test

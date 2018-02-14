@@ -26,23 +26,23 @@ import org.mockito.Mockito;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.RecordConsumer;
 import org.apache.parquet.proto.test.TestProto3;
-import org.apache.parquet.proto.test.TestProtobuf;
+import org.apache.parquet.proto.test.TestProto2;
 
 public class ProtoWriteSupportTest {
 
   private <T extends Message> ProtoWriteSupport<T> createReadConsumerInstance(Class<T> cls, RecordConsumer readConsumerMock) {
-    ProtoWriteSupport support = new ProtoWriteSupport(cls);
+    ProtoWriteSupport support = new ProtoWriteSupport(cls, false);
     support.init(new Configuration());
     support.prepareForWrite(readConsumerMock);
     return support;
   }
 
   @Test
-  public void testSimplestMessage() throws Exception {
+  public void testProto2SimplestMessage() throws Exception {
     RecordConsumer readConsumerMock =  Mockito.mock(RecordConsumer.class);
-    ProtoWriteSupport instance = createReadConsumerInstance(TestProtobuf.InnerMessage.class, readConsumerMock);
+    ProtoWriteSupport instance = createReadConsumerInstance(TestProto2.InnerMessage.class, readConsumerMock);
 
-    TestProtobuf.InnerMessage.Builder msg = TestProtobuf.InnerMessage.newBuilder();
+    TestProto2.InnerMessage.Builder msg = TestProto2.InnerMessage.newBuilder();
     msg.setOne("oneValue");
 
     instance.write(msg.build());
@@ -80,11 +80,11 @@ public class ProtoWriteSupportTest {
   }
 
   @Test
-  public void testRepeatedIntMessage() throws Exception {
+  public void testProto2RepeatedIntMessage() throws Exception {
     RecordConsumer readConsumerMock =  Mockito.mock(RecordConsumer.class);
-    ProtoWriteSupport instance = createReadConsumerInstance(TestProtobuf.RepeatedIntMessage.class, readConsumerMock);
+    ProtoWriteSupport instance = createReadConsumerInstance(TestProto2.RepeatedIntMessage.class, readConsumerMock);
 
-    TestProtobuf.RepeatedIntMessage.Builder msg = TestProtobuf.RepeatedIntMessage.newBuilder();
+    TestProto2.RepeatedIntMessage.Builder msg = TestProto2.RepeatedIntMessage.newBuilder();
     msg.addRepeatedInt(1323);
     msg.addRepeatedInt(54469);
 
@@ -154,11 +154,11 @@ public class ProtoWriteSupportTest {
   }
 
   @Test
-  public void testRepeatedInnerMessageMessage_message() throws Exception {
+  public void testProto2RepeatedInnerMessageMessage_message() throws Exception {
     RecordConsumer readConsumerMock =  Mockito.mock(RecordConsumer.class);
-    ProtoWriteSupport instance = createReadConsumerInstance(TestProtobuf.TopMessage.class, readConsumerMock);
+    ProtoWriteSupport instance = createReadConsumerInstance(TestProto2.TopMessage.class, readConsumerMock);
 
-    TestProtobuf.TopMessage.Builder msg = TestProtobuf.TopMessage.newBuilder();
+    TestProto2.TopMessage.Builder msg = TestProto2.TopMessage.newBuilder();
     msg.addInnerBuilder().setOne("one").setTwo("two");
 
     instance.write(msg.build());
@@ -228,11 +228,11 @@ public class ProtoWriteSupportTest {
   }
 
   @Test
-  public void testRepeatedInnerMessageMessage_scalar() throws Exception {
+  public void testProto2RepeatedInnerMessageMessage_scalar() throws Exception {
     RecordConsumer readConsumerMock =  Mockito.mock(RecordConsumer.class);
-    ProtoWriteSupport instance = createReadConsumerInstance(TestProtobuf.TopMessage.class, readConsumerMock);
+    ProtoWriteSupport instance = createReadConsumerInstance(TestProto2.TopMessage.class, readConsumerMock);
 
-    TestProtobuf.TopMessage.Builder msg = TestProtobuf.TopMessage.newBuilder();
+    TestProto2.TopMessage.Builder msg = TestProto2.TopMessage.newBuilder();
     msg.addInnerBuilder().setOne("one");
     msg.addInnerBuilder().setTwo("two");
 
@@ -322,11 +322,11 @@ public class ProtoWriteSupportTest {
   }
 
   @Test
-  public void testOptionalInnerMessage() throws Exception {
+  public void testProto2OptionalInnerMessage() throws Exception {
     RecordConsumer readConsumerMock =  Mockito.mock(RecordConsumer.class);
-    ProtoWriteSupport instance = createReadConsumerInstance(TestProtobuf.MessageA.class, readConsumerMock);
+    ProtoWriteSupport instance = createReadConsumerInstance(TestProto2.MessageA.class, readConsumerMock);
 
-    TestProtobuf.MessageA.Builder msg = TestProtobuf.MessageA.newBuilder();
+    TestProto2.MessageA.Builder msg = TestProto2.MessageA.newBuilder();
     msg.getInnerBuilder().setOne("one");
 
     instance.write(msg.build());
@@ -374,15 +374,15 @@ public class ProtoWriteSupportTest {
   }
 
   @Test(expected = UnsupportedOperationException.class)
-  public void testMessageWithExtensions() throws Exception {
+  public void testProto2MessageWithExtensions() throws Exception {
     RecordConsumer readConsumerMock =  Mockito.mock(RecordConsumer.class);
-    ProtoWriteSupport instance = createReadConsumerInstance(TestProtobuf.Vehicle.class, readConsumerMock);
+    ProtoWriteSupport instance = createReadConsumerInstance(TestProto2.Vehicle.class, readConsumerMock);
 
-    TestProtobuf.Vehicle.Builder msg = TestProtobuf.Vehicle.newBuilder();
+    TestProto2.Vehicle.Builder msg = TestProto2.Vehicle.newBuilder();
     msg.setHorsePower(300);
     // Currently there's no support for extension fields. This test tests that the extension field
     // will cause an exception.
-    msg.setExtension(TestProtobuf.Airplane.wingSpan, 50);
+    msg.setExtension(TestProto2.Airplane.wingSpan, 50);
 
     instance.write(msg.build());
   }

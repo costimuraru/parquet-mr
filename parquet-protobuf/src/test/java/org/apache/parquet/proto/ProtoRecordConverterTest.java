@@ -19,30 +19,33 @@
 package org.apache.parquet.proto;
 
 import com.google.protobuf.ByteString;
+import org.apache.parquet.io.api.Binary;
+import org.apache.parquet.tools.read.SimpleRecord;
+import org.apache.parquet.tools.read.SimpleRecord.NameValue;
 import org.junit.Test;
 import org.apache.parquet.proto.test.TestProto3;
-import org.apache.parquet.proto.test.TestProtobuf;
+import org.apache.parquet.proto.test.TestProto2;
 
 import java.util.List;
 
+import static org.apache.parquet.proto.TestUtils.writeAndReadParquet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.apache.parquet.proto.TestUtils.testData;
-import static org.apache.parquet.proto.test.TestProtobuf.SchemaConverterAllDatatypes;
 
 public class ProtoRecordConverterTest {
 
   @Test
-  public void testAllTypes() throws Exception {
-    SchemaConverterAllDatatypes.Builder data;
-    data = SchemaConverterAllDatatypes.newBuilder();
+  public void testProto2AllTypes() throws Exception {
+    TestProto2.SchemaConverterAllDatatypes.Builder data;
+    data = TestProto2.SchemaConverterAllDatatypes.newBuilder();
 
     data.setOptionalBool(true);
     data.setOptionalBytes(ByteString.copyFrom("someText", "UTF-8"));
     data.setOptionalDouble(0.577);
     data.setOptionalFloat(3.1415f);
-    data.setOptionalEnum(SchemaConverterAllDatatypes.TestEnum.FIRST);
+    data.setOptionalEnum(TestProto2.SchemaConverterAllDatatypes.TestEnum.FIRST);
     data.setOptionalFixed32(1000 * 1000 * 1);
     data.setOptionalFixed64(1000 * 1000 * 1000 * 2);
     data.setOptionalInt32(1000 * 1000 * 3);
@@ -57,21 +60,21 @@ public class ProtoRecordConverterTest {
     data.getOptionalMessageBuilder().setSomeId(1984);
     data.getPbGroupBuilder().setGroupInt(1492);
 
-    SchemaConverterAllDatatypes dataBuilt = data.build();
+    TestProto2.SchemaConverterAllDatatypes dataBuilt = data.build();
     data.clear();
 
-    List<TestProtobuf.SchemaConverterAllDatatypes> result;
-    result = testData(dataBuilt);
+    List<TestProto2.SchemaConverterAllDatatypes> result;
+    result = testData(false, dataBuilt);
 
     //data are fully checked in testData function. Lets do one more check.
-    SchemaConverterAllDatatypes o = result.get(0);
+    TestProto2.SchemaConverterAllDatatypes o = result.get(0);
     assertEquals("Good Will Hunting", o.getOptionalString());
 
     assertEquals(true, o.getOptionalBool());
     assertEquals(ByteString.copyFrom("someText", "UTF-8"), o.getOptionalBytes());
     assertEquals(0.577, o.getOptionalDouble(), 0.00001);
     assertEquals(3.1415f, o.getOptionalFloat(), 0.00001);
-    assertEquals(SchemaConverterAllDatatypes.TestEnum.FIRST, o.getOptionalEnum());
+    assertEquals(TestProto2.SchemaConverterAllDatatypes.TestEnum.FIRST, o.getOptionalEnum());
     assertEquals(1000 * 1000 * 1, o.getOptionalFixed32());
     assertEquals(1000 * 1000 * 1000 * 2, o.getOptionalFixed64());
     assertEquals(1000 * 1000 * 3, o.getOptionalInt32());
@@ -108,12 +111,13 @@ public class ProtoRecordConverterTest {
     data.setOptionalUInt32(1000 * 1000 * 8);
     data.setOptionalUInt64(1000L * 1000 * 1000 * 9);
     data.getOptionalMessageBuilder().setSomeId(1984);
+    data.setEmptyString("");
 
     TestProto3.SchemaConverterAllDatatypes dataBuilt = data.build();
     data.clear();
 
     List<TestProto3.SchemaConverterAllDatatypes> result;
-    result = testData(dataBuilt);
+    result = testData(true, dataBuilt);
 
     //data are fully checked in testData function. Lets do one more check.
     TestProto3.SchemaConverterAllDatatypes o = result.get(0);
@@ -138,18 +142,18 @@ public class ProtoRecordConverterTest {
   }
 
   @Test
-  public void testAllTypesMultiple() throws Exception {
+  public void testProto2AllTypesMultiple() throws Exception {
     int count = 100;
-    SchemaConverterAllDatatypes[] input = new SchemaConverterAllDatatypes[count];
+    TestProto2.SchemaConverterAllDatatypes[] input = new TestProto2.SchemaConverterAllDatatypes[count];
 
     for (int i = 0; i < count; i++) {
-      SchemaConverterAllDatatypes.Builder d = SchemaConverterAllDatatypes.newBuilder();
+      TestProto2.SchemaConverterAllDatatypes.Builder d = TestProto2.SchemaConverterAllDatatypes.newBuilder();
 
       if (i % 2 != 0) d.setOptionalBool(true);
       if (i % 3 != 0) d.setOptionalBytes(ByteString.copyFrom("someText " + i, "UTF-8"));
       if (i % 4 != 0) d.setOptionalDouble(0.577 * i);
       if (i % 5 != 0) d.setOptionalFloat(3.1415f * i);
-      if (i % 6 != 0) d.setOptionalEnum(SchemaConverterAllDatatypes.TestEnum.FIRST);
+      if (i % 6 != 0) d.setOptionalEnum(TestProto2.SchemaConverterAllDatatypes.TestEnum.FIRST);
       if (i % 7 != 0) d.setOptionalFixed32(1000 * i * 1);
       if (i % 8 != 0) d.setOptionalFixed64(1000 * i * 1000 * 2);
       if (i % 9 != 0) d.setOptionalInt32(1000 * i * 3);
@@ -166,8 +170,8 @@ public class ProtoRecordConverterTest {
       input[i] = d.build();
     }
 
-    List<TestProtobuf.SchemaConverterAllDatatypes> result;
-    result = testData(input);
+    List<TestProto2.SchemaConverterAllDatatypes> result;
+    result = testData(false, input);
 
     //data are fully checked in testData function. Lets do one more check.
     assertEquals("Good Will Hunting 0", result.get(0).getOptionalString());
@@ -203,7 +207,7 @@ public class ProtoRecordConverterTest {
     }
 
     List<TestProto3.SchemaConverterAllDatatypes> result;
-    result = testData(input);
+    result = testData(true, input);
 
     //data are fully checked in testData function. Lets do one more check.
     assertEquals("Good Will Hunting 0", result.get(0).getOptionalString());
@@ -211,12 +215,12 @@ public class ProtoRecordConverterTest {
   }
 
   @Test
-  public void testDefaults() throws Exception {
-    SchemaConverterAllDatatypes.Builder data;
-    data = SchemaConverterAllDatatypes.newBuilder();
+  public void testProto2Defaults() throws Exception {
+    TestProto2.SchemaConverterAllDatatypes.Builder data;
+    data = TestProto2.SchemaConverterAllDatatypes.newBuilder();
 
-    List<SchemaConverterAllDatatypes> result = testData(data.build());
-    SchemaConverterAllDatatypes message = result.get(0);
+    List<TestProto2.SchemaConverterAllDatatypes> result = testData(false, data.build());
+    TestProto2.SchemaConverterAllDatatypes message = result.get(0);
     assertEquals("", message.getOptionalString());
     assertEquals(false, message.getOptionalBool());
     assertEquals(0, message.getOptionalFixed32());
@@ -224,30 +228,43 @@ public class ProtoRecordConverterTest {
 
   @Test
   public void testProto3Defaults() throws Exception {
-    TestProto3.SchemaConverterAllDatatypes.Builder data;
-    data = TestProto3.SchemaConverterAllDatatypes.newBuilder();
+    TestProto3.SchemaConverterAllDatatypes data = TestProto3.SchemaConverterAllDatatypes.newBuilder()
+      .setOptionalEnum(TestProto3.SchemaConverterAllDatatypes.TestEnum.FIRST)
+      .setOptionalFixed32(12).build();
 
-    List<TestProto3.SchemaConverterAllDatatypes> result = testData(data.build());
-    TestProto3.SchemaConverterAllDatatypes message = result.get(0);
-    assertEquals("", message.getOptionalString());
-    assertEquals(false, message.getOptionalBool());
-    assertEquals(0, message.getOptionalFixed32());
+    List<SimpleRecord> res = writeAndReadParquet(true, TestProto3.SchemaConverterAllDatatypes.class, data);
+    SimpleRecord msg = res.get(0);
+    final byte[] optionalEnumBinary2 = (byte[]) getValue(msg, "optionalEnum");
+    final String optionalEnumValue2 = Binary.fromConstantByteArray(optionalEnumBinary2).toStringUsingUTF8();
+    assertEquals(12, getValue(msg, "optionalFixed32"));
+    assertEquals(TestProto3.SchemaConverterAllDatatypes.TestEnum.FIRST.toString(), optionalEnumValue2);
+    assertEquals("", getValue(msg, "optionalString"));
+    assertEquals(false, getValue(msg, "optionalBool"));
+  }
+
+  private static Object getValue(final SimpleRecord msg, final String name) {
+    for (NameValue value : msg.getValues()) {
+      if (value.getName().equals(name)) {
+        return value.getValue();
+      }
+    }
+    return null;
   }
 
   @Test
-  public void testRepeatedMessages() throws Exception {
-    TestProtobuf.TopMessage.Builder top = TestProtobuf.TopMessage.newBuilder();
+  public void testProto2RepeatedMessages() throws Exception {
+    TestProto2.TopMessage.Builder top = TestProto2.TopMessage.newBuilder();
     top.addInnerBuilder().setOne("First inner");
     top.addInnerBuilder().setTwo("Second inner");
     top.addInnerBuilder().setThree("Third inner");
 
-    TestProtobuf.TopMessage result = testData(top.build()).get(0);
+    TestProto2.TopMessage result = testData(false, top.build()).get(0);
 
     assertEquals(3, result.getInnerCount());
 
-    TestProtobuf.InnerMessage first = result.getInner(0);
-    TestProtobuf.InnerMessage second = result.getInner(1);
-    TestProtobuf.InnerMessage third = result.getInner(2);
+    TestProto2.InnerMessage first = result.getInner(0);
+    TestProto2.InnerMessage second = result.getInner(1);
+    TestProto2.InnerMessage third = result.getInner(2);
 
     assertEquals("First inner", first.getOne());
     assertFalse(first.hasTwo());
@@ -269,7 +286,7 @@ public class ProtoRecordConverterTest {
     top.addInnerBuilder().setTwo("Second inner");
     top.addInnerBuilder().setThree("Third inner");
 
-    TestProto3.TopMessage result = testData(top.build()).get(0);
+    TestProto3.TopMessage result = testData(true, top.build()).get(0);
 
     assertEquals(3, result.getInnerCount());
 
@@ -291,14 +308,14 @@ public class ProtoRecordConverterTest {
   }
 
   @Test
-  public void testRepeatedInt() throws Exception {
-    TestProtobuf.RepeatedIntMessage.Builder top = TestProtobuf.RepeatedIntMessage.newBuilder();
+  public void testProto2RepeatedInt() throws Exception {
+    TestProto2.RepeatedIntMessage.Builder top = TestProto2.RepeatedIntMessage.newBuilder();
 
     top.addRepeatedInt(1);
     top.addRepeatedInt(2);
     top.addRepeatedInt(3);
 
-    TestProtobuf.RepeatedIntMessage result = testData(top.build()).get(0);
+    TestProto2.RepeatedIntMessage result = testData(false, top.build()).get(0);
 
     assertEquals(3, result.getRepeatedIntCount());
 
@@ -315,7 +332,7 @@ public class ProtoRecordConverterTest {
     top.addRepeatedInt(2);
     top.addRepeatedInt(3);
 
-    TestProto3.RepeatedIntMessage result = testData(top.build()).get(0);
+    TestProto3.RepeatedIntMessage result = testData(true, top.build()).get(0);
 
     assertEquals(3, result.getRepeatedIntCount());
 
@@ -325,12 +342,12 @@ public class ProtoRecordConverterTest {
   }
 
   @Test
-  public void testLargeProtobufferFieldId() throws Exception {
-    TestProtobuf.HighIndexMessage.Builder builder = TestProtobuf.HighIndexMessage.newBuilder();
+  public void testProto2LargeProtobufferFieldId() throws Exception {
+    TestProto2.HighIndexMessage.Builder builder = TestProto2.HighIndexMessage.newBuilder();
     builder.addRepeatedInt(1);
     builder.addRepeatedInt(2);
 
-    testData(builder.build());
+    testData(false, builder.build());
   }
 
   @Test
@@ -339,6 +356,6 @@ public class ProtoRecordConverterTest {
     builder.addRepeatedInt(1);
     builder.addRepeatedInt(2);
 
-    testData(builder.build());
+    testData(true, builder.build());
   }
 }
