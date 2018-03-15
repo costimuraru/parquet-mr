@@ -48,6 +48,22 @@ import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.*;
 public class ProtoSchemaConverter {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProtoSchemaConverter.class);
+  private final boolean parquetSpecsCompliant;
+
+  public ProtoSchemaConverter() {
+    this(false);
+  }
+
+  /**
+   * Instanciate a schema converter to get the parquet schema corresponding to protobuf classes.
+   * @param parquetSpecsCompliant   If set to false, the parquet schema generated will be using the old
+   *                                schema style (prior to PARQUET-968) to provide backward-compatibility
+   *                                but which does not use LIST and MAP wrappers around collections as required
+   *                                by the parquet specifications. If set to true, specs compliant schemas are used.
+   */
+  public ProtoSchemaConverter(boolean parquetSpecsCompliant) {
+    this.parquetSpecsCompliant = parquetSpecsCompliant;
+  }
 
   public MessageType convert(Class<? extends Message> protobufClass) {
     LOG.debug("Converting protocol buffer class \"" + protobufClass + "\" to parquet schema.");
@@ -86,7 +102,8 @@ public class ProtoSchemaConverter {
     }
 
     ParquetType parquetType = getParquetType(descriptor);
-    if (descriptor.isRepeated()) {
+    if (descriptor.isRepeated() && parquetSpecsCompliant) {
+      // the old schema style did not include the LIST wrapper around repeated fields
       return addRepeatedPrimitive(descriptor, parquetType.primitiveType, parquetType.originalType, builder);
     }
 
@@ -118,9 +135,12 @@ public class ProtoSchemaConverter {
   }
 
   private <T> GroupBuilder<GroupBuilder<T>> addMessageField(FieldDescriptor descriptor, final GroupBuilder<T> builder) {
-    if (descriptor.isMapField()) {
+    if (descriptor.isMapField() && parquetSpecsCompliant) {
+      // the old schema style did not include the MAP wrapper around map groups
       return addMapField(descriptor, builder);
-    } else if (descriptor.isRepeated()) {
+    }
+    if (descriptor.isRepeated() && parquetSpecsCompliant) {
+      // the old schema style did not include the LIST wrapper around repeated messages
       return addRepeatedMessage(descriptor, builder);
     }
 
