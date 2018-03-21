@@ -115,7 +115,7 @@ public class ProtoSchemaConverter {
                                                                                                    OriginalType originalType,
                                                                                                    final GroupBuilder<T> builder) {
     return builder
-        .group(Type.Repetition.REQUIRED).as(OriginalType.LIST)
+        .group(Type.Repetition.OPTIONAL).as(OriginalType.LIST)
           .group(Type.Repetition.REPEATED)
             .primitive(primitiveType, Type.Repetition.REQUIRED).as(originalType)
           .named("element")
@@ -125,7 +125,7 @@ public class ProtoSchemaConverter {
   private <T> GroupBuilder<GroupBuilder<T>> addRepeatedMessage(FieldDescriptor descriptor, GroupBuilder<T> builder) {
     GroupBuilder<GroupBuilder<GroupBuilder<GroupBuilder<T>>>> result =
       builder
-        .group(Type.Repetition.REQUIRED).as(OriginalType.LIST)
+        .group(Type.Repetition.OPTIONAL).as(OriginalType.LIST)
         .group(Type.Repetition.REPEATED)
         .group(Type.Repetition.OPTIONAL);
 
