@@ -179,7 +179,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
         if(writeSpecsCompliant && fieldDescriptor.isRepeated() && !fieldDescriptor.isMapField()) {
           writer = new ArrayWriter(writer);
         }
-        else if (!writeSpecsCompliant && (fieldDescriptor.isRepeated() || fieldDescriptor.isMapField())) {
+        else if (!writeSpecsCompliant && fieldDescriptor.isRepeated()) {
           // the old schemas style used to write maps as repeated fields instead of wrapping them in a LIST
           writer = new RepeatedWriter(writer);
         }
@@ -257,16 +257,16 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     /** Writes message as part of repeated field. It cannot start field*/
     @Override
     final void writeRawValue(Object value) {
+      recordConsumer.startGroup();
       writeAllFields((MessageOrBuilder) value);
+      recordConsumer.endGroup();
     }
 
     /** Used for writing nonrepeated (optional, required) fields*/
     @Override
     final void writeField(Object value) {
       recordConsumer.startField(fieldName, index);
-      recordConsumer.startGroup();
-      writeAllFields((MessageOrBuilder) value);
-      recordConsumer.endGroup();
+      writeRawValue(value);
       recordConsumer.endField(fieldName, index);
     }
 
@@ -310,21 +310,11 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       recordConsumer.startField("list", 0); // This is the wrapper group for the array field
       for (Object listEntry: list) {
         recordConsumer.startGroup();
-
         recordConsumer.startField("element", 0); // This is the mandatory inner field
-
-        if (!isPrimitive(listEntry)) {
-          recordConsumer.startGroup();
-        }
 
         fieldWriter.writeRawValue(listEntry);
 
-        if (!isPrimitive(listEntry)) {
-          recordConsumer.endGroup();
-        }
-
         recordConsumer.endField("element", 0);
-
         recordConsumer.endGroup();
       }
       recordConsumer.endField("list", 0);
@@ -356,13 +346,7 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
       List<?> list = (List<?>) value;
 
       for (Object listEntry: list) {
-        if (!isPrimitive(listEntry)) {
-          recordConsumer.startGroup();
-        }
         fieldWriter.writeRawValue(listEntry);
-        if (!isPrimitive(listEntry)) {
-          recordConsumer.endGroup();
-        }
       }
 
       recordConsumer.endField(fieldName, index);
@@ -492,9 +476,5 @@ public class ProtoWriteSupport<T extends MessageOrBuilder> extends WriteSupport<
     Descriptor descriptor = Protobufs.getMessageDescriptor(protoClass);
     DescriptorProtos.DescriptorProto asProto = descriptor.toProto();
     return TextFormat.printToString(asProto);
-  }
-
-  private static boolean isPrimitive(Object listEntry) {
-    return !(listEntry instanceof Message);
   }
 }
